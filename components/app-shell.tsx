@@ -2,99 +2,142 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, FileText, Users, Settings, LogOut, Book, Menu, Plus, ReceiptText } from "lucide-react";
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useState } from "react";
 
-import { apiRequest } from "@/lib/client";
+import { requestJson } from "@/lib/client-http";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/invoices", label: "Invoices", icon: FileText },
-  { href: "/billing", label: "Billing", icon: ReceiptText },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/settings/catalog", label: "Catalog", icon: Book },
-  { href: "/settings", label: "Settings", icon: Settings },
+type NavLinkItem = {
+  href: string;
+  label: string;
+  match: (pathname: string) => boolean;
+};
+
+const mainLinks: NavLinkItem[] = [
+  { href: "/dashboard", label: "Dashboard", match: (pathname) => pathname === "/dashboard" },
+  { href: "/invoices", label: "Invoices", match: (pathname) => pathname === "/invoices" },
+  { href: "/clients", label: "Clients", match: (pathname) => pathname === "/clients" },
 ];
 
-export function AppShell({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+const secondaryLinks: NavLinkItem[] = [
+  { href: "/billing", label: "Billing", match: (pathname) => pathname === "/billing" },
+  {
+    href: "/settings",
+    label: "Settings",
+    match: (pathname) => pathname === "/settings",
+  },
+  {
+    href: "/settings/catalog",
+    label: "Catalog",
+    match: (pathname) => pathname === "/settings/catalog",
+  },
+];
+
+function NavLink({ item, pathname, closeMobileMenu }: { item: NavLinkItem; pathname: string; closeMobileMenu: () => void }) {
+  const active = item.match(pathname);
+  return (
+    <li>
+      <Link
+        href={item.href}
+        onClick={closeMobileMenu}
+        className={`block rounded-lg px-3 py-2 text-sm transition ${
+          active
+            ? "bg-[var(--color-elevated)] text-[var(--color-text-primary)]"
+            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-elevated)] hover:text-[var(--color-text-primary)]"
+        }`}
+      >
+        {item.label}
+      </Link>
+    </li>
+  );
+}
+
+export function AppShell({
+  title,
+  description,
+  actions,
+  children,
+}: {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
-  const activeHref = useMemo(() => {
-    const found = NAV_ITEMS.find((item) => pathname.startsWith(item.href));
-    return found?.href ?? "/dashboard";
-  }, [pathname]);
+  const closeMobileMenu = () => setMobileOpen(false);
 
-  async function handleLogout() {
+  const onLogout = async () => {
+    setLogoutLoading(true);
     try {
-      await apiRequest<{ success: true }>("/api/auth/logout", { method: "POST" });
+      await requestJson<{ success: true }>("/api/auth/logout", { method: "POST" });
+    } catch {
+      // The session may already be invalid, continue to public home.
     } finally {
-      router.push("/login");
-      router.refresh();
+      setLogoutLoading(false);
+      router.push("/");
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-[#F5F5F5] lg:flex">
-      {mobileOpen ? <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileOpen(false)} /> : null}
+    <div className="min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
+      {mobileOpen && <button className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={closeMobileMenu} aria-label="Close menu" />}
+
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[240px] border-r border-[#2E2E2E] bg-[#1A1A1A] p-6 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] lg:sticky lg:translate-x-0 ${
+        className={`fixed top-0 z-40 h-full w-[240px] border-r border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-transform md:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <Link href="/dashboard" className="mb-8 flex items-center gap-2 text-xl font-semibold">
-          <Plus size={18} className="text-[#6366F1]" />
+        <Link href="/dashboard" onClick={closeMobileMenu} className="mb-8 block text-xl font-semibold tracking-tight">
           Invoicer
         </Link>
-        <nav className="space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = item.href === activeHref;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  active ? "bg-[#242424] text-[#F5F5F5]" : "text-[#A0A0A0] hover:bg-[#2E2E2E] hover:text-[#F5F5F5]"
-                }`}
-                onClick={() => setMobileOpen(false)}
-              >
-                <Icon size={18} strokeWidth={1.5} />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="space-y-2">
+          <ul className="space-y-2">
+            {mainLinks.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} closeMobileMenu={closeMobileMenu} />
+            ))}
+          </ul>
+          <div className="border-t border-[var(--color-border)] pt-2">
+            <ul className="space-y-2">
+              {secondaryLinks.map((item) => (
+                <NavLink key={item.href} item={item} pathname={pathname} closeMobileMenu={closeMobileMenu} />
+              ))}
+            </ul>
+          </div>
         </nav>
-
         <button
           type="button"
-          className="mt-8 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-[#A0A0A0] hover:bg-[#2E2E2E] hover:text-[#F5F5F5]"
-          onClick={handleLogout}
+          onClick={onLogout}
+          disabled={logoutLoading}
+          className="mt-6 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-secondary)] transition hover:bg-[var(--color-elevated)] hover:text-[var(--color-text-primary)] disabled:opacity-60"
         >
-          <LogOut size={18} strokeWidth={1.5} />
-          Sign Out
+          {logoutLoading ? "Signing out..." : "Sign Out"}
         </button>
       </aside>
 
-      <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 border-b border-[#2E2E2E] bg-[#1A1A1A]/95 backdrop-blur">
-          <div className="mx-auto flex h-[72px] w-full max-w-[1280px] items-center justify-between px-6 md:px-12">
-            <div className="flex items-center gap-3">
+      <main className="md:pl-[240px]">
+        <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[color:rgba(15,15,15,0.92)] px-4 py-4 backdrop-blur md:px-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
               <button
                 type="button"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#2E2E2E] text-[#A0A0A0] lg:hidden"
-                onClick={() => setMobileOpen(true)}
+                className="mt-1 rounded-md border border-[var(--color-border)] px-2 py-1 text-sm text-[var(--color-text-secondary)] md:hidden"
+                onClick={() => setMobileOpen((open) => !open)}
               >
-                <Menu size={18} strokeWidth={1.5} />
+                Menu
               </button>
-              <h1 className="text-2xl font-semibold tracking-[-0.01em]">{title}</h1>
+              <div>
+                <h1 className="text-2xl font-semibold">{title}</h1>
+                {description && <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{description}</p>}
+              </div>
             </div>
-            {action}
+            {actions ? <div className="shrink-0">{actions}</div> : null}
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1280px] px-6 py-8 md:px-12">{children}</main>
-      </div>
+        <div className="p-4 md:p-8">{children}</div>
+      </main>
     </div>
   );
 }
