@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoicer - Elegant Invoicing for Freelancers</title>
+    <style>
+        /* Inter Font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* Design System from design-brief.md */
+        :root {
+            /* Colors */
+            --bg-primary: #0F0F0F;
+            --surface: #1A1A1A;
+            --elevated-surface: #242424;
+            --border: #2E2E2E;
+            --text-primary: #F5F5F5;
+            --text-secondary: #A0A0A0;
+            --text-muted: #6B6B6B;
+            --accent: #6366F1;
+            --accent-hover: #818CF8;
+            --accent-pressed: #4F46E5;
+            --error: #EF4444;
+            --error-bg: #450A0A;
+
+            /* Typography */
+            --font-family: 'Inter', sans-serif;
+            --fs-display: 3rem;
+            --fs-h1: 2.25rem;
+            --fs-h2: 1.5rem;
+            --fs-h3: 1.25rem;
+            --fs-body-lg: 1.125rem;
+            --fs-body-md: 1rem;
+            --fs-body-sm: 0.875rem;
+            --fs-caption: 0.75rem;
+
+            /* Spacing (8pt grid) */
+            --space-1: 8px;
+            --space-2: 16px;
+            --space-3: 24px;
+            --space-4: 32px;
+            --space-6: 48px;
+            --space-8: 64px;
+
+            /* Animation */
+            --transition-duration: 200ms;
+            --transition-ease: ease-in-out;
+        }
+
+        /* Base Styles & Resets */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-secondary);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            font-size: var(--fs-body-md);
+        }
+
+        h1, h2, h3 {
+            color: var(--text-primary);
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.025em;
+        }
+        h1 { font-size: var(--fs-h1); }
+        h2 { font-size: var(--fs-h2); }
+        h3 { font-size: var(--fs-h3); }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color var(--transition-duration) var(--transition-ease);
+        }
+        a:hover {
+            color: var(--accent-hover);
+        }
+
+        /* Layout */
+        .container {
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 var(--space-3);
+        }
+
+        section {
+            padding: var(--space-8) 0;
+        }
+
+        /* Header */
+        .main-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(15, 15, 15, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: var(--space-2) 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+        .main-header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .main-nav a {
+            margin-left: var(--space-3);
+            font-size: var(--fs-body-sm);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .main-nav a:hover {
+            color: var(--text-primary);
+        }
+        .header-actions .btn {
+            margin-left: var(--space-2);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: var(--fs-body-sm);
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all var(--transition-duration) var(--transition-ease);
+        }
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            color: white;
+        }
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            border-color: var(--border);
+        }
+        .btn-secondary:hover {
+            background-color: var(--elevated-surface);
+            border-color: var(--elevated-surface);
+        }
+        .btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 4px var(--bg-primary), 0 0 0 6px var(--accent);
+        }
+
+
+        /* Hero Section */
+        #home {
+            padding-top: calc(var(--space-8) + 80px); /* 80px for header */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .hero-content {
+            max-width: 800px;
+        }
+        .hero-content h1 {
+            font-size: var(--fs-display);
+            margin-bottom: var(--space-2);
+        }
+        .hero-content p {
+            font-size: var(--fs-body-lg);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-4);
+        }
+
+        /* Animated Hero Background */
+        .hero-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 120%;
+            height: 120%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.15) 0%, rgba(15, 15, 15, 0) 60%);
+            animation: pulse 10s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        /* Features Section */
+        .grid {
+            display: grid;
+            gap: var(--space-4);
+        }
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: var(--space-6);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .section-header h2 {
+            font-size: var(--fs-h1);
+            margin-bottom: var(--space-2);
+        }
+        .section-header p {
+            font-size: var(--fs-body-lg);
+        }
+
+        .feature-card {
+            background-color: var(--surface);
+            padding: var(--space-4);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .feature-card svg {
+            width: 32px;
+            height: 32px;
+            color: var(--accent);
+            margin-bottom: var(--space-2);
+        }
+        .feature-card h3 {
+            margin-bottom: var(--space-1);
+        }
+
+        /* Pricing Section */
+        .pricing-card {
+            background-color: var(--surface);
+            padding: var(--space-4);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+        }
+        .pricing-card.highlight {
+            border-color: var(--accent);
+            transform: scale(1.05);
+        }
+        .pricing-card h3 {
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .price {
+            font-size: var(--fs-display);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: var(--space-2) 0;
+        }
+        .price span {
+            font-size: var(--fs-body-md);
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+        .pricing-features {
+            list-style: none;
+            margin: var(--space-3) 0;
+            text-align: left;
+            flex-grow: 1;
+        }
+        .pricing-features li {
+            margin-bottom: var(--space-2);
+            display: flex;
+            align-items: center;
+        }
+        .pricing-features svg {
+            width: 16px;
+            height: 16px;
+            color: var(--accent);
+            margin-right: var(--space-1);
+            flex-shrink: 0;
+        }
+
+        /* About Section */
+        #about p {
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+            font-size: var(--fs-body-lg);
+        }
+
+        /* Footer */
+        .main-footer {
+            border-top: 1px solid var(--border);
+            padding: var(--space-4) 0;
+            margin-top: var(--space-8);
+        }
+        .main-footer .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+        }
+        .footer-links a {
+            margin-left: var(--space-3);
+            font-size: var(--fs-body-sm);
+        }
+
+        /* Scroll Reveal Animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s var(--transition-ease), transform 0.8s var(--transition-ease);
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            :root {
+                --fs-display: 2.5rem;
+                --fs-h1: 2rem;
+            }
+            .main-header .main-nav, .main-header .header-actions .btn-secondary {
+                display: none;
+            }
+            .pricing-card.highlight {
+                transform: scale(1);
+            }
+            .main-footer .container {
+                flex-direction: column;
+                text-align: center;
+            }
+            .footer-links {
+                margin-top: var(--space-2);
+            }
+            .footer-links a {
+                margin: 0 var(--space-1);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="main-header">
+        <div class="container">
+            <a href="#home" class="logo">Invoicer</a>
+            <nav class="main-nav">
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#about">About</a>
+            </nav>
+            <div class="header-actions">
+                <a href="#" class="btn btn-secondary">Log In</a>
+                <a href="#" class="btn btn-primary">Get Started Free</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section id="home">
+            <div class="hero-bg"></div>
+            <div class="container hero-content reveal visible">
+                <h1>Invoicing that looks as professional as you are.</h1>
+                <p>Combine beautiful design with powerful, free invoicing. Impress clients, get paid faster, and manage your finances with ease. Built for the modern freelancer.</p>
+                <a href="#pricing" class="btn btn-primary">Get Started for Free</a>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features">
+            <div class="container">
+                <div class="section-header reveal">
+                    <h2>Everything you need. Nothing you don't.</h2>
+                    <p>We focus on a core set of powerful features, delivered in a stunningly simple interface. No clutter, no accounting degree required.</p>
+                </div>
+                <div class="grid grid-3">
+                    <div class="feature-card reveal" style="transition-delay: 100ms;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <h3>Effortless Invoicing</h3>
+                        <p>Create and customize professional invoices in seconds. Add your logo, set custom payment terms, and save items for reuse.</p>
+                    </div>
+                    <div class="feature-card reveal" style="transition-delay: 200ms;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.512 2.72a9.094 9.094 0 013.741-.479 3 3 0 01-4.682-2.72M13.5 3.852a9.094 9.094 0 013.741.479 3 3 0 01-4.682 2.72M9 12.255a9.094 9.094 0 003.741.479 3 3 0 00-4.682 2.72m-3.741-.479a9.094 9.094 0 013.741-.479 3 3 0 01-4.682-2.72" /></svg>
+                        <h3>Client Management</h3>
+                        <p>Keep your client information organized in one place. Track their invoice history and outstanding balances at a glance.</p>
+                    </div>
+                    <div class="feature-card reveal" style="transition-delay: 300ms;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V6.375c0-.621.504-1.125 1.125-1.125h.375m18 3.75v.75a.75.75 0 01-.75.75h-.75a.75.75 0 01-.75-.75v-.75m0 0h.375c.621 0 1.125.504 1.125 1.125v.75c0 .414-.336.75-.75.75h-.75a.75.75 0 01-.75-.75v-.75m-6 3.75v.75a.75.75 0 01-.75.75h-.75a.75.75 0 01-.75-.75v-.75m0 0h.375c.621 0 1.125.504 1.125 1.125v.75c0 .414-.336.75-.75.75h-.75a.75.75 0 01-.75-.75v-.75" /></svg>
+                        <h3>Payment Tracking</h3>
+                        <p>Manually record cash, check, or bank transfer payments against your invoices. See invoice status change from Sent to Partial to Paid.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing">
+            <div class="container">
+                <div class="section-header reveal">
+                    <h2>Generous features. Simple pricing.</h2>
+                    <p>Start with a powerful free plan. Upgrade only when you need advanced features for your growing business.</p>
+                </div>
+                <div class="grid grid-2" style="max-width: 800px; margin: 0 auto;">
+                    <div class="pricing-card reveal" style="transition-delay: 100ms;">
+                        <h3>Free</h3>
+                        <div class="price">$0<span>/month</span></div>
+                        <p>For freelancers and solo entrepreneurs getting started.</p>
+                        <ul class="pricing-features">
+                            <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>Unlimited Invoices</li>
+                            <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>Unlimited Clients</li>
+                            <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>Manual Payment Tracking</li>
+                             <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>PDF Downloads</li>
+                        </ul>
+                        <a href="#" class="btn btn-secondary" style="width: 100%;">Start for Free</a>
+                    </div>
+                    <div class="pricing-card highlight reveal" style="transition-delay: 200ms;">
+                        <h3>Pro <span>(Coming Soon)</span></h3>
+                        <div class="price">$12<span>/month</span></div>
+                        <p>For growing businesses that need more power and automation.</p>
+                        <ul class="pricing-features">
+                            <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>Everything in Free, plus:</li>
+                            <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>Online Payment Processing</li>
+                            <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>Recurring Invoices</li>
+                            <li><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>Automated Reminders</li>
+                        </ul>
+                        <a href="#" class="btn btn-primary" style="width: 100%;">Get Notified</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about">
+            <div class="container">
+                <div class="section-header reveal">
+                    <h2>Built for Craft &amp; Clarity</h2>
+                    <p>Invoicer was born from the frustration of using clunky, bloated accounting software. We believe the tools you use should be as well-crafted as the work you produce. Our mission is to provide a beautiful, intuitive, and powerful invoicing solution that empowers creative professionals to manage their business with confidence.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <span class="copyright">&copy; 2026 Invoicer. All rights reserved.</span>
+            <div class="footer-links">
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Scroll Reveal Animation
+            const revealElements = document.querySelectorAll('.reveal');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                threshold: 0.1
+            });
+
+            revealElements.forEach(el => {
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>

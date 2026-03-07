@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoicer - App Prototype</title>
+    <style>
+        /* Inter Font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* Design System from design-brief.md */
+        :root {
+            /* Colors */
+            --bg-primary: #0F0F0F;
+            --surface: #1A1A1A;
+            --elevated-surface: #242424;
+            --border: #2E2E2E;
+            --text-primary: #F5F5F5;
+            --text-secondary: #A0A0A0;
+            --text-muted: #6B6B6B;
+            --accent: #6366F1;
+            --accent-hover: #818CF8;
+            --accent-pressed: #4F46E5;
+            
+            /* Status Colors */
+            --status-draft-text: #A0A0A0; --status-draft-bg: #1C1C1C;
+            --status-sent-text: #6366F1; --status-sent-bg: #1E1B4B;
+            --status-partial-text: #F59E0B; --status-partial-bg: #431407;
+            --status-paid-text: #22C55E; --status-paid-bg: #052E16;
+            --status-overdue-text: #EF4444; --status-overdue-bg: #450A0A;
+            --status-void-text: #6B6B6B; --status-void-bg: #171717;
+
+            --success-text: #22C55E; --success-bg: #052E16;
+            --error-text: #EF4444; --error-bg: #450A0A;
+
+            /* Typography */
+            --font-family: 'Inter', sans-serif;
+            --fs-h1: 2.25rem; --fs-h2: 1.5rem; --fs-h3: 1.25rem;
+            --fs-body-md: 1rem; --fs-body-sm: 0.875rem; --fs-caption: 0.75rem;
+
+            /* Spacing (8pt grid) */
+            --space-1: 8px; --space-2: 16px; --space-3: 24px;
+            --space-4: 32px; --space-6: 48px; --space-8: 64px;
+
+            /* Animation */
+            --transition-duration: 200ms;
+            --transition-ease: ease-in-out;
+        }
+
+        /* Base Styles & Resets */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-secondary);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            font-size: var(--fs-body-md);
+        }
+
+        h1, h2, h3 { color: var(--text-primary); font-weight: 700; line-height: 1.2; letter-spacing: -0.025em; }
+        h1 { font-size: var(--fs-h1); }
+        h2 { font-size: var(--fs-h2); }
+        h3 { font-size: var(--fs-h3); }
+
+        /* Main Layout */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: var(--space-3);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .main-content {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .app-page {
+            display: none; /* Hidden by default */
+            padding: var(--space-4);
+            animation: fadeIn 0.5s var(--transition-ease);
+        }
+        .app-page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Sidebar */
+        .sidebar-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            padding: 0 var(--space-1) var(--space-3);
+        }
+        .sidebar-nav {
+            list-style: none;
+            flex-grow: 1;
+        }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 12px var(--space-1);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: var(--fs-body-sm);
+            text-decoration: none;
+            transition: all var(--transition-duration) var(--transition-ease);
+            margin-bottom: 4px;
+        }
+        .sidebar-nav a:hover {
+            background-color: var(--elevated-surface);
+            color: var(--text-primary);
+        }
+        .sidebar-nav a.active {
+            background-color: var(--accent);
+            color: white;
+        }
+        .sidebar-nav svg {
+            width: 20px;
+            height: 20px;
+            margin-right: var(--space-2);
+        }
+        .sidebar-footer {
+            list-style: none;
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-4);
+        }
+        
+        /* General Components */
+        .card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: var(--space-3);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: var(--fs-body-sm);
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all var(--transition-duration) var(--transition-ease);
+        }
+        .btn-primary { background-color: var(--accent); color: white; border-color: var(--accent); }
+        .btn-primary:hover { background-color: var(--accent-hover); border-color: var(--accent-hover); }
+        .btn-secondary { background-color: var(--elevated-surface); color: var(--text-primary); border-color: var(--border); }
+        .btn-secondary:hover { background-color: #333; }
+        .btn-destructive { background-color: transparent; color: var(--error-text); border-color: var(--error-text); }
+        .btn-destructive:hover { background-color: var(--error-bg); }
+        .btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent);
+        }
+        
+        /* Forms */
+        .form-group { margin-bottom: var(--space-2); }
+        .form-label { display: block; font-size: var(--fs-body-sm); font-weight: 500; color: var(--text-secondary); margin-bottom: var(--space-1); }
+        .form-input, .form-select {
+            width: 100%;
+            background-color: var(--elevated-surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: var(--fs-body-sm);
+            transition: border-color var(--transition-duration) var(--transition-ease);
+        }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--accent); }
+        .form-input::placeholder { color: var(--text-muted); }
+        .form-grid { display: grid; gap: var(--space-2); }
+        .form-grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .form-grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+        /* Tables */
+        .table-wrapper { width: 100%; overflow-x: auto; }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table th, .table td {
+            padding: 12px var(--space-2);
+            text-align: left;
+            font-size: var(--fs-body-sm);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .table th { color: var(--text-secondary); font-weight: 600; }
+        .table td { color: var(--text-primary); }
+        .table tbody tr:hover { background-color: var(--elevated-surface); cursor: pointer; }
+        .table .text-right, .table .th-right { text-align: right; }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: var(--fs-caption);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-draft { color: var(--status-draft-text); background-color: var(--status-draft-bg); }
+        .status-sent { color: var(--status-sent-text); background-color: var(--status-sent-bg); }
+        .status-partial { color: var(--status-partial-text); background-color: var(--status-partial-bg); }
+        .status-paid { color: var(--status-paid-text); background-color: var(--status-paid-bg); }
+        .status-overdue { color: var(--status-overdue-text); background-color: var(--status-overdue-bg); }
+        .status-void { color: var(--status-void-text); background-color: var(--status-void-bg); }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background-color: var(--elevated-surface);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            animation: slideInUp 0.4s ease;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-header {
+            padding: var(--space-3);
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-body {
+            padding: var(--space-3);
+            overflow-y: auto;
+        }
+        .modal-footer {
+            padding: var(--space-2) var(--space-3);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-2);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-8) var(--space-4);
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            margin-top: var(--space-4);
+        }
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
+        }
+        .empty-state h3 {
+            margin-bottom: var(--space-1);
+        }
+
+        /* Dashboard Specific */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+        .stat-card {
+            padding: var(--space-3);
+        }
+        .stat-card .label {
+            font-size: var(--fs-body-sm);
+            margin-bottom: var(--space-1);
+        }
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .stat-card .value.overdue {
+            color: var(--status-overdue-text);
+        }
+        
+        .widget-card h3 {
+             margin-bottom: var(--space-3);
+        }
+
+        /* Invoice Detail Page */
+        .invoice-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-4);
+            flex-wrap: wrap;
+            gap: var(--space-2);
+        }
+        .invoice-detail-header .actions {
+            display: flex;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+        }
+        .invoice-preview { padding: var(--space-6); }
+        .invoice-preview-header { display: flex; justify-content: space-between; margin-bottom: var(--space-6); }
+        .invoice-preview-header .logo { max-height: 60px; }
+        .invoice-party { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); margin-bottom: var(--space-6); }
+        .invoice-line-items th, .invoice-line-items td { background-color: var(--elevated-surface); }
+        .invoice-line-items th:first-child, .invoice-line-items td:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        .invoice-line-items th:last-child, .invoice-line-items td:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+        .invoice-totals { display: flex; justify-content: flex-end; margin-top: var(--space-3); }
+        .invoice-totals table { width: 300px; }
+        .invoice-totals td { padding: 8px var(--space-2); }
+        .invoice-totals tr:last-child td { font-weight: 700; font-size: 1.1rem; color: var(--text-primary); border-top: 1px solid var(--border); }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-layout { flex-direction: column; }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                justify-content: space-around;
+                align-items: center;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 0;
+            }
+            .sidebar-header, .sidebar-footer { display: none; }
+            .sidebar-nav { display: flex; justify-content: space-around; width: 100%; }
+            .sidebar-nav a { flex-direction: column; padding: var(--space-2) 0; font-size: 12px; gap: 4px; }
+            .sidebar-nav a svg { margin-right: 0; }
+
+            .app-page { padding: var(--space-2); }
+            .page-header { flex-direction: column; align-items: stretch; gap: var(--space-2); }
+            .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+            .invoice-party { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">Invoicer</div>
+            <ul class="sidebar-nav">
+                <li><a href="#dashboard" class="nav-link active">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h12M3.75 3h16.5M3.75 7.5h16.5M3.75 11.25h16.5M9.75 16.5h4.5m-4.5 3h4.5M3.75 21h16.5" /></svg>
+                    Dashboard
+                </a></li>
+                <li><a href="#invoices" class="nav-link">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    Invoices
+                </a></li>
+                <li><a href="#clients" class="nav-link">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M12 3.375c-3.418 0-6.167 2.749-6.167 6.167s2.749 6.167 6.167 6.167 6.167-2.749 6.167-6.167S15.418 3.375 12 3.375z" /></svg>
+                    Clients
+                </a></li>
+            </ul>
+            <ul class="sidebar-footer">
+                 <li><a href="#settings" class="nav-link">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-1.007 1.11-1.226.554-.225 1.151-.242 1.709-.045.551.194 1.02.633 1.269 1.171.242.531.226 1.129-.045 1.708-.271.58-.756 1.021-1.321 1.226-.561.206-1.19.19-1.751-.058a2.112 2.112 0 01-1.293-1.157c-.206-.554-.19-1.19.058-1.751.248-.56.697-1.004 1.226-1.293zM9.594 18.06c.09.542.56 1.007 1.11 1.226.554.225 1.151.242 1.709-.045.551.194 1.02.633 1.269 1.171.242.531.226 1.129-.045 1.708-.271.58-.756 1.021-1.321 1.226-.561.206-1.19.19-1.751-.058a2.112 2.112 0 01-1.293-1.157c-.206-.554-.19-1.19.058-1.751.248-.56.697-1.004 1.226-1.293zM14.406 12c-.09.542-.56 1.007-1.11 1.226-.554.225-1.151.242-1.709-.045-.551-.194-1.02.633-1.269 1.171-.242.531-.226 1.129-.045 1.708.271.58.756 1.021-1.321 1.226-.561.206-1.19.19-1.751-.058a2.112 2.112 0 01-1.293-1.157c.206-.554.19-1.19-.058-1.751-.248-.56-.697-1.004-1.226-1.293s-1.19-.19-1.751.058a2.112 2.112 0 01-1.157-1.293c-.554.206-.19.697.058 1.248.56.248 1.004.697 1.293 1.226.271.58.256 1.22-.045 1.709-.194.551-.633 1.02-1.171 1.269-.531.242-1.129.226-1.708-.045-.58-.271-1.021-.756-1.226-1.321s-.19-1.19.058-1.751a2.112 2.112 0 011.157-1.293c.554-.206 1.19-.19 1.751.058.56.248 1.004.697 1.293 1.226.271.58.256 1.22-.045 1.709-.194.551-.633 1.02-1.171 1.269-.531.242-1.129.226-1.708-.045-.58-.271-1.021-.756-1.226-1.321s-.19-1.19.058-1.751a2.112 2.112 0 011.157-1.293c.554-.206 1.19-.19 1.751.058" /></svg>
+                    Settings
+                </a></li>
+                <li><a href="#" class="nav-link">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+                    Logout
+                </a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- === Dashboard Page === -->
+            <section id="dashboard" class="app-page active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <button class="btn btn-primary" onclick="showPage('new-invoice')">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                        New Invoice
+                    </button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <div class="label">Total Outstanding</div>
+                        <div class="value">$12,450.00</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="label">Total Overdue</div>
+                        <div class="value overdue">$3,200.00</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="label">Paid This Month</div>
+                        <div class="value">$8,950.00</div>
+                    </div>
+                </div>
+
+                <div class="card widget-card">
+                    <h3>Overdue Invoices</h3>
+                    <div class="table-wrapper">
+                        <table class="table">
+                            <thead><tr><th>Client</th><th>Number</th><th class="th-right">Amount Due</th><th class="th-right">Days Overdue</th></tr></thead>
+                            <tbody>
+                                <tr onclick="showPage('invoice-detail')"><td>Quantum Innovations</td><td>INV-0021</td><td class="text-right">$1,200.00</td><td class="text-right">15</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>Stellar Solutions</td><td>INV-0019</td><td class="text-right">$2,000.00</td><td class="text-right">32</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div style="height: var(--space-3)"></div>
+
+                <div class="card widget-card">
+                    <h3>Recent Invoices</h3>
+                    <div class="table-wrapper">
+                        <table class="table">
+                             <thead><tr><th>Client</th><th>Number</th><th>Due Date</th><th>Status</th><th class="th-right">Total</th></tr></thead>
+                            <tbody>
+                                <tr onclick="showPage('invoice-detail')"><td>Nexus Corp</td><td>INV-0024</td><td>Mar 20, 2026</td><td><span class="status-badge status-sent">Sent</span></td><td class="text-right">$2,500.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>Vertex Digital</td><td>INV-0023</td><td>Mar 15, 2026</td><td><span class="status-badge status-paid">Paid</span></td><td class="text-right">$500.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>Apex Industries</td><td>INV-0022</td><td>Mar 12, 2026</td><td><span class="status-badge status-partial">Partial</span></td><td class="text-right">$4,000.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>Quantum Innovations</td><td>INV-0021</td><td>Feb 20, 2026</td><td><span class="status-badge status-overdue">Overdue</span></td><td class="text-right">$1,200.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>Stellar Solutions</td><td>INV-0020</td><td>Feb 29, 2026</td><td><span class="status-badge status-draft">Draft</span></td><td class="text-right">$3,000.00</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- === Invoices List Page === -->
+            <section id="invoices" class="app-page">
+                 <div class="page-header">
+                    <h1>Invoices</h1>
+                    <button class="btn btn-primary" onclick="showPage('new-invoice')">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                        New Invoice
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="table-wrapper">
+                        <table class="table">
+                             <thead><tr><th>Client</th><th>Number</th><th>Issue Date</th><th>Due Date</th><th>Status</th><th class="th-right">Total</th></tr></thead>
+                            <tbody>
+                               <tr onclick="showPage('invoice-detail')"><td>Nexus Corp</td><td>INV-0024</td><td>Feb 19, 2026</td><td>Mar 20, 2026</td><td><span class="status-badge status-sent">Sent</span></td><td class="text-right">$2,500.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>Vertex Digital</td><td>INV-0023</td><td>Feb 14, 2026</td><td>Mar 15, 2026</td><td><span class="status-badge status-paid">Paid</span></td><td class="text-right">$500.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>Apex Industries</td><td>INV-0022</td><td>Feb 11, 2026</td><td>Mar 12, 2026</td><td><span class="status-badge status-partial">Partial</span></td><td class="text-right">$4,000.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>Quantum Innovations</td><td>INV-0021</td><td>Jan 21, 2026</td><td>Feb 20, 2026</td><td><span class="status-badge status-overdue">Overdue</span></td><td class="text-right">$1,200.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>Stellar Solutions</td><td>INV-0020</td><td>Feb 1, 2026</td><td>Feb 29, 2026</td><td><span class="status-badge status-draft">Draft</span></td><td class="text-right">$3,000.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>Momentum LLC</td><td>INV-0018</td><td>Dec 10, 2025</td><td>Jan 9, 2026</td><td><span class="status-badge status-void">Void</span></td><td class="text-right">$1,800.00</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Empty state example -->
+                <div class="empty-state" style="display: none;">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    <h3>No invoices yet</h3>
+                    <p>Create your first invoice to get started.</p>
+                    <button class="btn btn-primary" style="margin-top: 16px;" onclick="showPage('new-invoice')">New Invoice</button>
+                </div>
+            </section>
+            
+            <!-- === Invoice Detail Page === -->
+            <section id="invoice-detail" class="app-page">
+                <div class="invoice-detail-header">
+                    <div>
+                        <h1>Invoice INV-0024</h1>
+                        <span class="status-badge status-sent">Sent</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-secondary">Download PDF</button>
+                        <button class="btn btn-secondary">Duplicate</button>
+                        <button class="btn btn-secondary" onclick="showModal('recordPaymentModal')">Record Payment</button>
+                        <button class="btn btn-destructive">Void</button>
+                    </div>
+                </div>
+                <div class="card invoice-preview">
+                    <div class="invoice-preview-header">
+                        <div>
+                            <h2 class="company-name">My Freelance Biz</h2>
+                            <p>123 Design St.<br>Creative City, CA 90210</p>
+                        </div>
+                        <div class="text-right">
+                             <h1>INVOICE</h1>
+                             <p># INV-0024</p>
+                        </div>
+                    </div>
+                    <div class="invoice-party">
+                        <div>
+                            <p style="color: var(--text-muted)">Billed To</p>
+                            <h3 style="color: var(--text-primary)">Nexus Corp</h3>
+                            <p>456 Tech Avenue<br>Innovation Valley, CA 94043</p>
+                        </div>
+                        <div style="text-align: right">
+                            <p><strong>Issue Date:</strong> Feb 19, 2026</p>
+                            <p><strong>Due Date:</strong> Mar 20, 2026</p>
+                            <p><strong>Amount Due:</strong></p>
+                            <h2 style="color: var(--text-primary); font-size: 1.8rem;">$2,500.00</h2>
+                        </div>
+                    </div>
+                    <div class="table-wrapper" style="margin-bottom: var(--space-4);">
+                        <table class="table invoice-line-items">
+                            <thead><tr><th>Description</th><th class="th-right">Qty</th><th class="th-right">Unit Price</th><th class="th-right">Amount</th></tr></thead>
+                            <tbody>
+                                <tr><td>Website Redesign & Development</td><td class="text-right">1</td><td class="text-right">$2,500.00</td><td class="text-right">$2,500.00</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                     <div class="invoice-totals">
+                         <table>
+                             <tbody>
+                                 <tr><td>Subtotal</td><td class="text-right">$2,500.00</td></tr>
+                                 <tr><td>Tax (0%)</td><td class="text-right">$0.00</td></tr>
+                                 <tr><td>Total</td><td class="text-right">$2,500.00</td></tr>
+                             </tbody>
+                         </table>
+                     </div>
+                </div>
+                
+                <div style="height: var(--space-3)"></div>
+
+                <div class="card">
+                    <h3>Payment History</h3>
+                    <p>No payments recorded yet.</p>
+                </div>
+            </section>
+
+            <!-- === New/Edit Invoice Page === -->
+            <section id="new-invoice" class="app-page">
+                <div class="page-header">
+                    <h1>New Invoice</h1>
+                </div>
+                <div class="card">
+                    <div class="form-grid" style="grid-template-columns: 2fr 1fr 1fr; margin-bottom: var(--space-4); align-items: end;">
+                        <div class="form-group">
+                            <label class="form-label">Client</label>
+                            <input type="text" class="form-input" placeholder="Search for a client..." value="Nexus Corp">
+                        </div>
+                         <div class="form-group">
+                            <label class="form-label">Issue Date</label>
+                            <input type="date" class="form-input" value="2026-03-06">
+                        </div>
+                         <div class="form-group">
+                            <label class="form-label">Due Date</label>
+                            <input type="date" class="form-input" value="2026-04-05">
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper" style="margin-bottom: var(--space-3);">
+                        <table class="table">
+                            <thead><tr><th>Description</th><th style="width: 100px;">Qty</th><th style="width: 150px;">Unit Price</th><th style="width: 150px;">Amount</th><th style="width: 50px;"></th></tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="text" class="form-input" placeholder="Item description" value="Website Redesign & Development"></td>
+                                    <td><input type="number" class="form-input text-right" value="1"></td>
+                                    <td><input type="text" class="form-input text-right" value="2500.00"></td>
+                                    <td><input type="text" class="form-input text-right" value="2500.00" disabled></td>
+                                    <td><button class="btn btn-destructive">&times;</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-secondary">Add Line Item</button>
+
+                    <div class="invoice-totals" style="margin-bottom: var(--space-4);">
+                         <table>
+                             <tbody>
+                                 <tr><td>Subtotal</td><td class="text-right">$2,500.00</td></tr>
+                                 <tr><td>Tax (%) <input type="number" class="form-input" value="0" style="width: 60px; display: inline-block; padding: 4px;"></td><td class="text-right">$0.00</td></tr>
+                                 <tr><td>Discount <input type="number" class="form-input" value="0" style="width: 80px; display: inline-block; padding: 4px;"></td><td class="text-right">$0.00</td></tr>
+                                 <tr><td>Total</td><td class="text-right">$2,500.00</td></tr>
+                             </tbody>
+                         </table>
+                     </div>
+                     
+                     <div class="form-group">
+                        <label class="form-label">Notes (optional)</label>
+                        <textarea class="form-input" rows="3"></textarea>
+                     </div>
+
+                     <div class="form-group" style="text-align: right;">
+                         <button class="btn btn-secondary">Save as Draft</button>
+                         <button class="btn btn-primary">Save and Send</button>
+                     </div>
+                </div>
+            </section>
+
+            <!-- === Clients List Page === -->
+            <section id="clients" class="app-page">
+                <div class="page-header">
+                    <h1>Clients</h1>
+                    <button class="btn btn-primary" onclick="showModal('clientModal')">
+                         <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                        Add Client
+                    </button>
+                </div>
+                 <div class="card">
+                    <div class="table-wrapper">
+                        <table class="table">
+                             <thead><tr><th>Name</th><th>Company</th><th>Email</th><th class="th-right">Total Invoiced</th><th class="th-right">Outstanding</th></tr></thead>
+                            <tbody>
+                               <tr onclick="showPage('client-detail')"><td>Alice Johnson</td><td>Nexus Corp</td><td>alice@nexuscorp.com</td><td class="text-right">$15,200.00</td><td class="text-right">$2,500.00</td></tr>
+                               <tr onclick="showPage('client-detail')"><td>Bob Williams</td><td>Vertex Digital</td><td>bob@vertex.digital</td><td class="text-right">$8,500.00</td><td class="text-right">$0.00</td></tr>
+                               <tr onclick="showPage('client-detail')"><td>Charlie Brown</td><td>Apex Industries</td><td>charlie@apex.io</td><td class="text-right">$22,000.00</td><td class="text-right">$1,000.00</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- === Client Detail Page === -->
+            <section id="client-detail" class="app-page">
+                 <div class="page-header">
+                    <h1>Alice Johnson</h1>
+                    <div>
+                        <button class="btn btn-destructive">Delete</button>
+                        <button class="btn btn-primary" onclick="showModal('clientModal')">Edit Client</button>
+                    </div>
+                </div>
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <div class="label">Total Invoiced</div>
+                        <div class="value">$15,200.00</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="label">Balance Due</div>
+                        <div class="value overdue">$2,500.00</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="label">Company</div>
+                        <div class="value" style="font-size: 1.5rem">Nexus Corp</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Invoice History</h3>
+                    <div class="table-wrapper">
+                        <table class="table">
+                             <thead><tr><th>Number</th><th>Issue Date</th><th>Due Date</th><th>Status</th><th class="th-right">Total</th></tr></thead>
+                            <tbody>
+                                <tr onclick="showPage('invoice-detail')"><td>INV-0024</td><td>Feb 19, 2026</td><td>Mar 20, 2026</td><td><span class="status-badge status-sent">Sent</span></td><td class="text-right">$2,500.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>INV-0015</td><td>Nov 5, 2025</td><td>Dec 5, 2025</td><td><span class="status-badge status-paid">Paid</span></td><td class="text-right">$7,000.00</td></tr>
+                                <tr onclick="showPage('invoice-detail')"><td>INV-0011</td><td>Aug 1, 2025</td><td>Aug 31, 2025</td><td><span class="status-badge status-paid">Paid</span></td><td class="text-right">$5,700.00</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- === Settings Page === -->
+            <section id="settings" class="app-page">
+                <div class="page-header"><h1>Settings</h1></div>
+                <div class="card">
+                    <h3>Business Profile</h3>
+                    <form>
+                        <div class="form-grid form-grid-2">
+                             <div class="form-group">
+                                <label for="businessName" class="form-label">Business Name</label>
+                                <input type="text" id="businessName" class="form-input" value="My Freelance Biz">
+                            </div>
+                            <div class="form-group">
+                                <label for="businessEmail" class="form-label">Email</label>
+                                <input type="email" id="businessEmail" class="form-input" value="hello@mybiz.com">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Address</label>
+                            <input type="text" class="form-input" value="123 Design St.">
+                        </div>
+                         <div class="form-grid form-grid-3">
+                            <div class="form-group">
+                                <label class="form-label">City</label>
+                                <input type="text" class="form-input" value="Creative City">
+                            </div>
+                             <div class="form-group">
+                                <label class="form-label">State / Province</label>
+                                <input type="text" class="form-input" value="CA">
+                            </div>
+                             <div class="form-group">
+                                <label class="form-label">ZIP / Postal Code</label>
+                                <input type="text" class="form-input" value="90210">
+                            </div>
+                        </div>
+                        
+                        <h3 style="margin-top: 24px; margin-bottom: 16px;">Invoice Defaults</h3>
+                         <div class="form-grid form-grid-2">
+                             <div class="form-group">
+                                <label class="form-label">Default Currency</label>
+                                <select class="form-select"><option>USD</option><option>EUR</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Default Payment Terms (Days)</label>
+                                <input type="number" class="form-input" value="30">
+                            </div>
+                             <div class="form-group">
+                                <label class="form-label">Invoice Prefix</label>
+                                <input type="text" class="form-input" value="INV-">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Next Invoice Number</label>
+                                <input type="number" class="form-input" value="25">
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: right; margin-top: 16px;">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+        </main>
+    </div>
+    
+    <!-- Modals -->
+    <div id="clientModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header"><h3>Add New Client</h3></div>
+            <div class="modal-body">
+                <form>
+                     <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-input">
+                    </div>
+                     <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Company</label>
+                        <input type="text" class="form-input">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('clientModal')">Cancel</button>
+                <button class="btn btn-primary">Save Client</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="recordPaymentModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header"><h3>Record Payment for INV-0024</h3></div>
+            <div class="modal-body">
+                <form>
+                     <div class="form-grid form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Amount</label>
+                            <input type="text" class="form-input" value="2500.00">
+                        </div>
+                         <div class="form-group">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-input" value="2026-03-06">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Method</label>
+                        <select class="form-select">
+                            <option>Bank Transfer</option>
+                            <option>Cash</option>
+                            <option>Check</option>
+                            <option>Credit Card</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                     <div class="form-group">
+                        <label class="form-label">Note (optional)</label>
+                        <input type="text" class="form-input">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('recordPaymentModal')">Cancel</button>
+                <button class="btn btn-primary">Save Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const pages = document.querySelectorAll('.app-page');
+
+            // --- Navigation ---
+            function showPage(pageId) {
+                pages.forEach(page => page.classList.remove('active'));
+                const activePage = document.getElementById(pageId);
+                if (activePage) {
+                    activePage.classList.add('active');
+                }
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if(link.getAttribute('href') === `#${pageId}`) {
+                        link.classList.add('active');
+                    }
+                });
+                window.scrollTo(0,0);
+            }
+            
+            window.showPage = showPage; // Make it globally accessible for inline onclick
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pageId = this.getAttribute('href').substring(1);
+                    showPage(pageId);
+                });
+            });
+
+            // Set initial page
+            const initialPage = window.location.hash ? window.location.hash.substring(1) : 'dashboard';
+            showPage(initialPage);
+            
+            // --- Modals ---
+            function showModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if(modal) modal.classList.add('active');
+            }
+            
+            function closeModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if(modal) modal.classList.remove('active');
+            }
+            
+            window.showModal = showModal;
+            window.closeModal = closeModal;
+            
+            // Close modal on overlay click
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeModal(this.id);
+                    }
+                });
+            });
+            
+            // Close modal with Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === "Escape") {
+                    document.querySelectorAll('.modal-overlay.active').forEach(modal => closeModal(modal.id));
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
