@@ -1,27 +1,26 @@
 import type { Metadata } from "next";
-import { Lexend } from "next/font/google";
+import { Inter } from "next/font/google";
+
+import { ToastProvider } from "@/components/toast";
+
 import "./globals.css";
 
-const lexend = Lexend({
-  variable: "--font-lexend",
-  weight: ["300", "400", "500", "600"],
+const inter = Inter({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
-  title: "Invoicer - Professional invoices that get paid.",
+  title: "Invoicer",
   description: "Professional invoicing for the way you work.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${lexend.variable} antialiased`}>
-        {children}
+      <body className={`${inter.variable} bg-[#0F0F0F] text-[#F5F5F5] antialiased`}>
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );
