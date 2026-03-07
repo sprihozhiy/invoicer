@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoicer - Professional Invoicing Made Simple</title>
+    
+    <style>
+        /* Inter Font from Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* 1. Design System & Variables */
+        :root {
+            /* Colors */
+            --bg-primary: #0F0F0F;
+            --bg-surface: #1A1A1A;
+            --bg-elevated: #242424;
+            --bg-hover: #2E2E2E;
+            --text-primary: #F5F5F5;
+            --text-secondary: #A0A0A0;
+            --text-muted: #6B6B6B;
+            --border-primary: #2E2E2E;
+            --border-focus: #6366F1;
+            --accent-primary: #6366F1;
+            --accent-hover: #818CF8;
+            --accent-active: #4F46E5;
+            --accent-text: #FFFFFF;
+            --danger-fg: #EF4444;
+            --danger-bg: #450A0A;
+
+            /* Typography */
+            --font-family: 'Inter', sans-serif;
+            
+            /* Spacing */
+            --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+            --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+            --space-12: 48px; --space-16: 64px; --space-24: 96px; --space-32: 128px;
+            
+            /* Layout */
+            --max-width: 1280px;
+            --nav-height: 72px;
+
+            /* Animation */
+            --transition-speed: 300ms;
+            --timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 2. Base & Reset */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            line-height: 1.6;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text-primary);
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            font-weight: 700;
+        }
+
+        h1 { font-size: 48px; }
+        h2 { font-size: 36px; font-weight: 600; }
+        h3 { font-size: 24px; font-weight: 600; }
+        p { color: var(--text-secondary); margin-bottom: var(--space-4); }
+        a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            transition: color var(--transition-speed) var(--timing-function);
+        }
+        a:hover { color: var(--accent-hover); }
+
+        /* 3. Layout & Container */
+        .container {
+            width: 100%;
+            max-width: var(--max-width);
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: var(--space-6);
+            padding-right: var(--space-6);
+        }
+
+        .section {
+            padding-top: var(--space-24);
+            padding-bottom: var(--space-24);
+        }
+        
+        /* 4. Components */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            padding: var(--space-3) var(--space-5);
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all var(--transition-speed) var(--timing-function);
+            white-space: nowrap;
+        }
+        
+        .btn:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-primary);
+            color: var(--accent-text);
+            border-color: var(--accent-primary);
+        }
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-surface);
+            color: var(--text-primary);
+            border-color: var(--border-primary);
+        }
+        .btn-secondary:hover {
+            background-color: var(--bg-hover);
+        }
+        
+        .card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: var(--space-6);
+            transition: all var(--transition-speed) var(--timing-function);
+        }
+        
+        /* 5. Navigation */
+        .main-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            height: var(--nav-height);
+            background-color: rgba(15, 15, 15, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-primary);
+        }
+        .nav-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+        }
+        .logo {
+            font-weight: 600;
+            font-size: 20px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+        .nav-links {
+            display: none;
+            gap: var(--space-8);
+        }
+        .nav-links a {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--text-primary);
+        }
+        .nav-actions { display: none; }
+        .mobile-menu-btn {
+            display: block;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        .mobile-nav {
+            position: fixed;
+            top: var(--nav-height);
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-primary);
+            padding: var(--space-8);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-6);
+            transform: translateX(100%);
+            transition: transform var(--transition-speed) var(--timing-function);
+        }
+        .mobile-nav.open {
+            transform: translateX(0);
+        }
+        .mobile-nav a {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* 6. Hero Section */
+        .hero {
+            padding-top: calc(var(--nav-height) + var(--space-24));
+            padding-bottom: var(--space-24);
+            text-align: center;
+        }
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            margin-bottom: var(--space-4);
+        }
+        .hero .subtitle {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-8);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .hero-actions {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-4);
+        }
+        
+        /* 7. Features Section */
+        .features-grid {
+            display: grid;
+            gap: var(--space-6);
+        }
+        .feature-card {
+            text-align: left;
+        }
+        .feature-card .icon {
+            color: var(--accent-primary);
+            background-color: var(--bg-elevated);
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: var(--space-4);
+        }
+        .feature-card h3 {
+            margin-bottom: var(--space-2);
+        }
+
+        /* 8. Pricing Section */
+        .pricing-card {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .pricing-card h3 {
+            font-size: 20px;
+            margin-bottom: var(--space-2);
+        }
+        .price {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: var(--space-2);
+        }
+        .price span {
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+        .feature-list {
+            list-style: none;
+            margin: var(--space-8) 0;
+            text-align: left;
+            flex-grow: 1;
+        }
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-3);
+            color: var(--text-secondary);
+        }
+        .feature-list i {
+            color: var(--accent-primary);
+            width: 20px;
+            height: 20px;
+        }
+
+        /* 9. CTA Section */
+        .cta-section {
+            background-color: var(--bg-surface);
+            border-radius: 16px;
+            padding: var(--space-16);
+            text-align: center;
+        }
+        .cta-section h2 {
+            margin-bottom: var(--space-4);
+        }
+
+        /* 10. Footer */
+        .footer {
+            border-top: 1px solid var(--border-primary);
+            padding: var(--space-12) 0;
+            margin-top: var(--space-24);
+        }
+        .footer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-6);
+            text-align: center;
+        }
+        .footer-links {
+            display: flex;
+            gap: var(--space-6);
+        }
+
+        /* 11. Animation & Responsive */
+
+        /* Animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s var(--timing-function), transform 0.8s var(--timing-function);
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .hero-content > * {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUpFadeIn 0.8s var(--timing-function) forwards;
+        }
+        .hero-content h1 { animation-delay: 0.2s; }
+        .hero-content .subtitle { animation-delay: 0.4s; }
+        .hero-content .hero-actions { animation-delay: 0.6s; }
+
+        @keyframes slideUpFadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Tablet Styles */
+        @media (min-width: 768px) {
+            .container {
+                padding-left: var(--space-12);
+                padding-right: var(--space-12);
+            }
+            .mobile-menu-btn { display: none; }
+            .nav-links { display: flex; }
+            .nav-actions { display: flex; gap: var(--space-4); }
+
+            .hero h1 { font-size: 60px; }
+            .hero .subtitle { font-size: 24px; }
+            
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .footer-container {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+        }
+
+        /* Desktop Styles */
+        @media (min-width: 1440px) {
+            .features-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .pricing-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: var(--space-8);
+                max-width: 1000px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="container nav-container">
+            <a href="#" class="logo">
+                <i data-lucide="zap" style="width: 20px; height: 20px; color: var(--accent-primary);"></i>
+                Invoicer
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#about">About</a>
+            </div>
+            <div class="nav-actions">
+                <a href="/login" class="btn btn-secondary">Log In</a>
+                <a href="/register" class="btn btn-primary">Get Started Free</a>
+            </div>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
+    </nav>
+    <div class="mobile-nav" id="mobile-nav">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#about">About</a>
+        <a href="/login" class="btn btn-secondary" style="margin-top: var(--space-4);">Log In</a>
+        <a href="/register" class="btn btn-primary">Get Started Free</a>
+    </div>
+
+    <!-- Hero Section -->
+    <header class="hero" id="home">
+        <div class="container hero-content">
+            <h1>Create Professional Invoices in Seconds</h1>
+            <p class="subtitle">A modern, dark UI invoice generator designed for freelancers and small businesses who value speed and simplicity.</p>
+            <div class="hero-actions">
+                <a href="/register" class="btn btn-primary" style="padding: 16px 32px; font-size: 18px;">Get Started for Free</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Features Section -->
+        <section id="features" class="section">
+            <div class="container">
+                <div style="text-align: center; max-width: 600px; margin: 0 auto var(--space-16);">
+                    <h2 class="reveal">Everything you need. Nothing you don't.</h2>
+                    <p class="reveal" style="font-size: 18px;">Focus on your work, not on your paperwork. Invoicer is built to be fast, intuitive, and beautiful.</p>
+                </div>
+                <div class="features-grid">
+                    <div class="card feature-card reveal">
+                        <div class="icon"><i data-lucide="file-text" style="width: 24px; height: 24px;"></i></div>
+                        <h3>Effortless Invoicing</h3>
+                        <p>Create and send polished, professional invoices with just a few clicks. Pre-fill items, add discounts, and track everything.</p>
+                    </div>
+                    <div class="card feature-card reveal">
+                        <div class="icon"><i data-lucide="users" style="width: 24px; height: 24px;"></i></div>
+                        <h3>Client Management</h3>
+                        <p>Keep your client information organized and accessible. See total invoiced amounts and outstanding balances at a glance.</p>
+                    </div>
+                    <div class="card feature-card reveal">
+                        <div class="icon"><i data-lucide="bar-chart-3" style="width: 24px; height: 24px;"></i></div>
+                        <h3>Simple Dashboard</h3>
+                        <p>A clean, focused dashboard shows you key stats like total outstanding and overdue amounts, so you always know where you stand.</p>
+                    </div>
+                    <div class="card feature-card reveal">
+                        <div class="icon"><i data-lucide="book" style="width: 24px; height: 24px;"></i></div>
+                        <h3>Service Catalog</h3>
+                        <p>Save frequently used line items in your catalog to build invoices even faster. Set a price, description, and you're ready to go.</p>
+                    </div>
+                    <div class="card feature-card reveal">
+                        <div class="icon"><i data-lucide="credit-card" style="width: 24px; height: 24px;"></i></div>
+                        <h3>Payment Tracking</h3>
+                        <p>Manually record full or partial payments against your invoices to keep your records accurate and up-to-date.</p>
+                    </div>
+                    <div class="card feature-card reveal">
+                        <div class="icon"><i data-lucide="moon" style="width: 24px; height: 24px;"></i></div>
+                        <h3>Premium Dark UI</h3>
+                        <p>Designed from the ground up with a beautiful, modern dark interface that's easy on the eyes and a pleasure to use.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="section" style="background-color: var(--bg-surface);">
+            <div class="container">
+                <div style="text-align: center; max-width: 600px; margin: 0 auto var(--space-16);">
+                    <h2 class="reveal">Simple, Transparent Pricing</h2>
+                    <p class="reveal" style="font-size: 18px;">Get all the core features, completely free. We believe powerful invoicing tools should be accessible to everyone.</p>
+                </div>
+                <div class="pricing-grid">
+                    <div class="card pricing-card reveal" style="grid-column: 1 / -1; @media(min-width: 1440px) { grid-column: 2; }">
+                        <h3>Free Forever</h3>
+                        <p class="price">$0 <span>/ month</span></p>
+                        <p style="color: var(--text-secondary);">For freelancers and small businesses.</p>
+                        <ul class="feature-list">
+                            <li><i data-lucide="check" style="width: 20px; height: 20px;"></i> Unlimited Invoices</li>
+                            <li><i data-lucide="check" style="width: 20px; height: 20px;"></i> Unlimited Clients</li>
+                            <li><i data-lucide="check" style="width: 20px; height: 20px;"></i> Service Catalog</li>
+                            <li><i data-lucide="check" style="width: 20px; height: 20px;"></i> PDF Downloads</li>
+                            <li><i data-lucide="check" style="width: 20px; height: 20px;"></i> Manual Payment Tracking</li>
+                        </ul>
+                        <a href="/register" class="btn btn-primary" style="width: 100%;">Start Invoicing for Free</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="section" id="about">
+            <div class="container reveal">
+                <div class="cta-section">
+                    <h2>Ready to Simplify Your Invoicing?</h2>
+                    <p style="font-size: 18px; max-width: 600px; margin: var(--space-4) auto var(--space-8);">Stop wrestling with spreadsheets and clunky software. Start sending beautiful invoices today.</p>
+                    <a href="/register" class="btn btn-primary" style="padding: 16px 32px; font-size: 18px;">Get Started - It's Free</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-container">
+            <a href="#" class="logo">Invoicer</a>
+            <div class="footer-links">
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#">Sign In</a>
+            </div>
+            <p style="color: var(--text-muted); margin: 0;">© 2024 Invoicer. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Lucide Icons & JS -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Initialize Lucide Icons
+            lucide.createIcons({
+                attrs: {
+                    'stroke-width': 1.5
+                }
+            });
+
+            // 2. Mobile Navigation Toggle
+            const menuBtn = document.getElementById('mobile-menu-btn');
+            const mobileNav = document.getElementById('mobile-nav');
+            if (menuBtn && mobileNav) {
+                menuBtn.addEventListener('click', () => {
+                    mobileNav.classList.toggle('open');
+                });
+                // Close menu when a link is clicked
+                mobileNav.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', () => {
+                        mobileNav.classList.remove('open');
+                    });
+                });
+            }
+
+            // 3. Scroll Reveal Animation
+            const revealElements = document.querySelectorAll('.reveal');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                threshold: 0.1
+            });
+            revealElements.forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>

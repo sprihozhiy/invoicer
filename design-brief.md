@@ -1,132 +1,171 @@
-# Invoicer — Design Brief
+# Invoicer: Design System & Brand Guidelines
 
-## 1. Aesthetic & Philosophy
+This document outlines the design system for the Invoicer SaaS application, covering both marketing and in-app interfaces. The aesthetic is modern, professional, and minimalist, built on a premium dark theme.
 
--   **Goal:** To create a visual identity that feels premium, trustworthy, and modern, positioning Invoicer as a high-end tool that is nonetheless accessible. The design should immediately convey professionalism and ease of use, targeting freelancers and small business owners who value their brand image.
--   **Core Principles:**
-    -   **Dark & Focused:** A dark-themed UI minimizes visual noise and places the user's content—their invoices and business data—at the forefront. It reduces eye strain and communicates a sleek, professional aesthetic.
-    -   **Clarity over Clutter:** Every element is chosen for its purpose. We avoid decorative-only elements, ensuring a clean, data-first presentation. Generous whitespace and a structured layout guide the user's eye.
-    -   **Tactile & Responsive:** The interface uses subtle animations, gradients, and shadows to create a sense of depth and interactivity. Elements feel tangible and respond to user input, making the experience engaging and intuitive.
+---
 
-## 2. Color Palette
+## 1. Aesthetic Goals
 
-The palette is built on a foundation of deep, muted grays, accented by a vibrant indigo to draw attention to primary actions. This creates a high-contrast, legible, and visually striking experience.
+- **Modern & Professional:** The UI should feel current, clean, and trustworthy, reinforcing the idea that our users can create professional-grade documents.
+- **Minimalist:** We prioritize clarity and ease of use. Every element should have a purpose. We avoid visual clutter.
+- **Breathable:** We use generous white space (negative space) through padding and margins to create a calm, uncluttered, and premium feel.
+- **Action-Oriented:** The design should guide the user towards primary actions like "New Invoice" or "Record Payment" with clear visual hierarchy.
 
-| Role | Hex | SCSS Variable | Description |
-| :--- | :--- | :--- | :--- |
-| **Primary Background** | `#0B0B0F` | `$color-bg-primary` | The darkest base color, used for the main page background. |
-| **Surface** | `#1A1A1A` | `$color-surface` | For card backgrounds and distinct sections. |
-| **Elevated / Interactive**| `#242424` | `$color-elevated` | For inputs, modals, and elements that float above the surface. |
-| **Borders** | `#2E2E2E` | `$color-border` | Subtle borders for separating elements and defining component edges. |
-| **Accent Primary** | `#6366F1` | `$color-accent-primary`| The main interactive color for CTAs, links, and focus states. |
-| **Accent Hover** | `#818CF8` | `$color-accent-hover` | A lighter shade for hover states on interactive elements. |
-| **Text Primary** | `#F5F5F5` | `$color-text-primary` | For headings and primary body text. High contrast. |
-| **Text Secondary** | `#A0A0A0` | `$color-text-secondary`| For subheadings, labels, and less important text. |
-| **Text Muted** | `#6B6B6B` | `$color-text-muted` | For placeholder text and disabled states. |
-| **Success** | `#22C55E` | `$color-success` | Used for "Paid" status and positive feedback. |
-| **Warning** | `#F59E0B` | `$color-warning` | Used for "Partial" status. |
-| **Error** | `#EF4444` | `$color-error` | Used for "Overdue" status and destructive action hovers. |
-| **Gradient Start** | `rgba(99, 102, 241, 0.2)` | `$color-gradient-start` | Start of decorative background gradients. |
-| **Gradient End** | `rgba(11, 11, 15, 0)` | `$color-gradient-end` | End of decorative background gradients (fades to black). |
+---
 
+## 2. Color Palette (Dark Mode)
+
+The entire product uses a single dark mode theme. All color combinations meet WCAG AA contrast standards.
+
+| Role | Hex | Usage |
+|---|---|---|
+| **Backgrounds** | | |
+| `bg-primary` | `#0F0F0F` | Main page background for both marketing and app. |
+| `bg-surface` | `#1A1A1A` | Cards, panels, sidebars, and main content areas. |
+| `bg-elevated` | `#242424` | Modals, dropdowns, popovers, and input fields. |
+| `bg-hover` | `#2E2E2E` | Hover state for list items and interactive neutral surfaces. |
+| **Text** | | |
+| `text-primary` | `#F5F5F5` | Headings and primary body content. |
+| `text-secondary`| `#A0A0A0` | Subheadings, secondary body content, and descriptive text. |
+| `text-muted` | `#6B6B6B` | Helper text, disabled states, and placeholder text. |
+| **Borders** | | |
+| `border-primary`| `#2E2E2E` | Default border for cards, inputs, and layout divisions. |
+| `border-focus` | `#6366F1` | Border color for focused interactive elements (see Accent). |
+| **Accent (Indigo)** | | |
+| `accent-primary`| `#6366F1` | Primary CTAs, links, focus rings, and key icons. |
+| `accent-hover` | `#818CF8` | Hover state for accent-colored elements. |
+| `accent-active` | `#4F46E5` | Pressed/active state for accent-colored elements. |
+| `accent-text` | `#FFFFFF` | Text color on top of `accent-primary` backgrounds. |
+| **Semantic Colors** | | |
+| `success-fg` | `#22C55E` | "Paid" status, success messages. |
+| `success-bg` | `#052E16` | Background for "Paid" status badge. |
+| `warning-fg` | `#F59E0B` | "Partial" status, warning messages. |
+| `warning-bg` | `#431407` | Background for "Partial" status badge. |
+| `danger-fg` | `#EF4444` | "Overdue" status, error messages, delete/void actions. |
+| `danger-bg` | `#450A0A` | Background for "Overdue" status badge. |
+| `info-fg` | `#6366F1` | "Sent" status, informational messages (re-uses accent). |
+| `info-bg` | `#1E1B4B` | Background for "Sent" status badge. |
+| `neutral-fg` | `#A0A0A0` | "Draft" status. |
+| `neutral-bg` | `#1C1C1C` | Background for "Draft" status badge. |
+| `void-fg` | `#6B6B6B` | "Void" status. |
+| `void-bg` | `#171717` | Background for "Void" status badge. |
+
+---
 
 ## 3. Typography
 
-The typography is chosen for its clarity, modern feel, and excellent readability on dark backgrounds across a range of screen sizes.
+- **Font:** Inter (sans-serif). Sourced from Google Fonts. It offers excellent readability at all sizes.
+- **Weights:** Regular (400), Medium (500), SemiBold (600), Bold (700).
 
--   **Primary Font:** **Lexend** (from Google Fonts)
-    -   **Why Lexend?** It's a clean, geometric sans-serif designed for high readability. Its variable font weights allow for fine-tuned control over the typographic hierarchy.
--   **Weights Used:**
-    -   `300` (Light): For subtle labels or secondary text.
-    -   `400` (Regular): For body copy and paragraphs.
-    -   `500` (Medium): For subheadings and bolded text within paragraphs.
-    -   `600` (Semi-Bold): For primary headings and CTAs.
+| Element | Font Size (px) | Font Weight | Line Height | Letter Spacing | Usage |
+|---|---|---|---|---|---|
+| Display | 60 | Bold (700) | 1.2 | -0.02em | Marketing hero title. |
+| Heading 1 | 48 | Bold (700) | 1.2 | -0.02em | Marketing section heads, App page titles. |
+| Heading 2 | 36 | SemiBold (600) | 1.3 | -0.01em | Sub-sections, large modal titles. |
+| Heading 3 | 24 | SemiBold (600) | 1.4 | 0 | Card titles, feature titles. |
+| Heading 4 | 20 | Medium (500) | 1.5 | 0 | Minor headings. |
+| Body (Lg) | 18 | Regular (400) | 1.6 | 0 | Marketing body copy. |
+| Body (Md) | 16 | Regular (400) | 1.6 | 0 | App body copy, form inputs. |
+| Body (Sm) | 14 | Regular (400) | 1.5 | 0 | Table text, helper text, metadata. |
+| Label | 12 | Medium (500) | 1.0 | 0.01em | Form labels, status badges, uppercase tags. |
 
-### Typographic Scale (Mobile / Desktop)
+---
 
--   **h1 (Hero Title):** 48px / 64px, Weight 600
--   **h2 (Section Title):** 32px / 40px, Weight 600
--   **h3 (Card/Feature Title):** 20px / 24px, Weight 500
--   **Body Large (Hero Subtitle):** 18px / 20px, Weight 400, Color `$color-text-secondary`
--   **Body Regular:** 16px / 16px, Weight 400
--   **Button/CTA Text:** 16px / 16px, Weight 500
--   **Label/Small Text:** 14px / 14px, Weight 300, Color `$color-text-secondary`
+## 4. Spacing
 
-## 4. Layout & Spacing
+A 4-point grid system is used for all spacing (margins, padding, gaps).
 
-A consistent spacing and grid system creates rhythm and visual harmony, making the layout feel intentional and easy to scan.
+| Token | Value (px) | Usage |
+|---|---|---|
+| `space-1` | 4 | |
+| `space-2` | 8 | |
+| `space-3` | 12 | |
+| `space-4` | 16 | Standard padding inside components. |
+| `space-5` | 20 | |
+| `space-6` | 24 | Padding for larger components (cards, modals). |
+| `space-8` | 32 | Gap between components. |
+| `space-10` | 40 | |
+| `space-12` | 48 | |
+| `space-16` | 64 | Gap between page sections. |
+| `space-24` | 96 | Large vertical gap for marketing pages. |
+| `space-32` | 128 | |
 
--   **Grid:** A 12-column grid is used for the main content areas. The maximum content width is `1200px`.
--   **Spacing Unit:** The base unit is `8px`. All padding, margins, and gaps are multiples of this unit.
-    -   `8px` (x1): Small gaps between inline elements.
-    -   `16px` (x2): Padding within small components (e.g., buttons).
-    -   `24px` (x3): Gaps between related items (e.g., icon and text).
-    -   `32px` (x4): Padding within cards and larger components.
-    -   `64px` (x8): Gaps between feature cards in a grid.
-    -   `96px` (x12): Major vertical spacing between page sections.
--   **Breakpoints:**
-    -   **Mobile:** `< 768px` (single-column layout, fluid)
-    -   **Tablet:** `≥ 768px` (2 or 4-column grids appear)
-    -   **Desktop:** `≥ 1440px` (full 12-column grid, max-width content)
+---
 
-## 5. Component Library
+## 5. Icons (Lucide)
 
-This is a list of the key components designed for the landing page prototype.
+- **Library:** [Lucide](https://lucide.dev/)
+- **Source:** CDN - `https://unpkg.com/lucide@latest`
+- **Implementation:** Icons are injected using JavaScript (`lucide.createIcons()`).
+- **Standard Stroke Width:** `1.5px` for a thin, modern feel.
+- **Sizing:**
+  - **Navigation / UI:** `18px` (e.g., sidebar, buttons, table actions).
+  - **Feature / Hero:** `24px` (e.g., feature lists on marketing pages).
+  - **Decorative:** Sizes may vary, but should not exceed `48px`.
+- **Color:** Icons should inherit color via `currentColor` to match parent text color (e.g., `text-secondary` for a gray icon).
 
--   **Button (Primary CTA):**
-    -   Background: `$color-accent-primary`
-    -   Text: `$color-text-primary` (white)
-    -   Hover: Background `$color-accent-hover`
-    -   Border Radius: `8px`
-    -   Padding: `12px 24px`
-    -   Special: Includes a subtle background glow and a `translateY(-2px)` on hover.
--   **Button (Secondary):**
-    -   Background: `transparent`
-    -   Text: `$color-text-primary`
-    -   Border: `1px solid $color-border`
-    -   Hover: Background `$color-elevated`
-    -   Border Radius: `8px`
-    -   Padding: `12px 24px`
--   **Feature Card:**
-    -   Background: `$color-surface`
-    -   Border: `1px solid $color-border`
-    -   Border Radius: `16px`
-    -   Padding: `32px`
-    -   Structure: Icon, `h3` title, `p` description.
-    -   Interaction: Subtle background glow and border color change on hover.
--   **Animated Hero Invoice:**
-    -   A simplified, stylized representation of an invoice UI.
-    -   Uses nested `div`s with borders, backgrounds, and flexbox for layout.
-    -   Elements animate into place using staggered CSS `transform` and `opacity` transitions.
--   **Scroll-Reveal Elements:**
-    -   Standard sections and cards that fade and slide in from below on scroll.
-    -   Uses Intersection Observer API in JS to add a `.is-visible` class.
-    -   CSS handles the `transform: translateY(20px)` and `opacity: 0` transition to the visible state.
--   **Navigation Bar:**
-    -   Sticky to the top.
-    -   Background: `$color-bg-primary` with a semi-transparent blur effect (`backdrop-filter: blur(10px)`).
-    -   Border: `1px solid $color-border` on the bottom.
-    -   Contains logo, nav links, and CTA buttons.
+---
 
-## 6. Animation & Motion
+## 6. Layout & Breakpoints
 
-Animation is used to guide the user, provide feedback, and create a sense of premium craftsmanship.
+- **Breakpoints:**
+  - **Mobile:** `375px` (Base styles)
+  - **Tablet:** `768px` (min-width)
+  - **Desktop:** `1440px` (min-width)
+- **Container:**
+  - A centered container with a `max-width` of `1280px` is used for both app and marketing pages on desktop.
+  - Padding: `24px` on mobile, `48px` on tablet/desktop.
+- **Marketing Page Layout:**
+  - Full-width sections with centered content containers.
+  - Responsive grids for feature lists and pricing tables.
+- **App Layout:**
+  - **Desktop:** A fixed vertical sidebar (`240px` width) with main content area.
+  - **Tablet/Mobile:** The sidebar collapses into a hamburger-menu-driven drawer or a top navigation bar.
 
--   **Hero Animation:**
-    -   **Goal:** To immediately capture attention and visually communicate the product's purpose.
-    -   **Execution:** A stylized invoice UI animates into view on page load.
-        1.  Main card fades and scales in.
-        2.  Header elements slide down.
-        3.  Line item rows fade and slide in from the bottom, one by one, with a slight delay.
-        4.  The "Total" section lights up at the end.
-    -   **Technology:** Pure CSS using `@keyframes` and `animation-delay`.
--   **Scroll-Reveal:**
-    -   **Goal:** To make the experience of scrolling down the page more dynamic and engaging.
-    -   **Execution:** As the user scrolls, sections and feature cards animate into view. The effect is a gentle fade-in and slide-up.
-    -   **Technology:** JavaScript's `IntersectionObserver` API to detect when an element enters the viewport, adding a CSS class that triggers a `transform`/`opacity` transition.
--   **Micro-interactions:**
-    -   **Buttons/Links:** Smooth `transform` and `background-color` transitions on hover.
-    -   **Feature Cards:** A subtle lift (`translateY`) and border/glow highlight on hover to indicate interactivity.
-    -   **Focus States:** A prominent, non-subtle focus ring (`2px solid $color-accent-primary`) on all interactive elements for accessibility.
+---
 
-This design brief establishes a clear and consistent system to be implemented in the `design-prototype.html` file, ensuring all elements work together cohesively to meet the project's goals.
+## 7. Component Patterns
+
+- **Buttons:**
+  - **Primary:** `accent-primary` background, `accent-text` color.
+  - **Secondary:** `bg-elevated` background, `text-primary` color.
+  - **Destructive:** Transparent background, `danger-fg` border and text.
+  - **Padding:** `12px 20px` for standard buttons.
+  - **Radius:** `8px`.
+  - **Focus:** `2px` solid `accent-primary` ring with a `2px` transparent offset.
+
+- **Forms:**
+  - **Inputs/Textareas:** `bg-elevated` background, `border-primary` border. On focus, border becomes `border-focus`. `16px` font size. `12px 16px` padding.
+  - **Labels:** `12px` font size, `text-secondary` color, placed `8px` above the input.
+  - **Selects:** Styled to match inputs, with a chevron icon from Lucide (`chevron-down`).
+
+- **Cards:**
+  - **Background:** `bg-surface`.
+  - **Border:** `1px solid border-primary`.
+  - **Radius:** `12px`.
+  - **Padding:** `24px`.
+
+- **Modals:**
+  - **Overlay:** `rgba(0, 0, 0, 0.7)`.
+  - **Dialog:** `bg-elevated` background, `16px` radius, `32px` padding.
+  - **Sizing:** Max width `500px` on desktop.
+
+- **Tables:**
+  - No outer border. Rows are separated by a `1px solid border-primary` line.
+  - Header: `12px` uppercase `text-secondary`.
+  - Body: `14px` `text-primary`.
+  - Row Hover: `bg-hover`.
+
+---
+
+## 8. Animation
+
+- **Timing Function:** `cubic-bezier(0.4, 0, 0.2, 1)` for most transitions.
+- **Duration:** `200ms` for fast feedback (hovers), `300ms` for transitions (modals, drawers).
+- **Marketing Page Animations:**
+  - **Hero:** Staggered fade-in/slide-up animation for headline, sub-headline, and CTA.
+  - **Scroll Reveal:** Elements (feature cards, testimonials) fade in and slide up slightly as they enter the viewport.
+- **App Animations:**
+  - Subtle fade-in for page content on navigation.
+  - Modal/Drawer entrance/exit animations (scale and fade for modals, slide for drawers).
+  - List item animations on add/remove (fade and height transition).
