@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Download, Plus, Copy } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useToast } from "@/components/toast";
 import { AppShell } from "@/components/app-shell";
@@ -11,6 +11,14 @@ import { EmptyState, PageError, PageLoader, StatusBadge } from "@/components/ui"
 import { ApiClientError, InvoiceSummary, PaginatedEnvelope, STATUS_OPTIONS, apiRequest, formatCurrency, formatDate } from "@/lib/client";
 
 export function InvoiceListPage({ title = "Invoices" }: { title?: string }) {
+  return (
+    <Suspense fallback={<AppShell title={title}><PageLoader /></AppShell>}>
+      <InvoiceListPageContent title={title} />
+    </Suspense>
+  );
+}
+
+function InvoiceListPageContent({ title }: { title: string }) {
   const router = useRouter();
   const params = useSearchParams();
   const { pushToast } = useToast();

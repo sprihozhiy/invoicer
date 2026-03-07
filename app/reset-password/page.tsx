@@ -1,12 +1,20 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { AuthShell } from "@/components/auth-shell";
 import { ApiClientError, apiRequest } from "@/lib/client";
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<AuthShell title="Set a new password" subtitle="At least 8 characters, 1 uppercase letter, and 1 number."><p className="text-sm text-[#A0A0A0]">Loading reset form...</p></AuthShell>}>
+      <ResetPasswordPageContent />
+    </Suspense>
+  );
+}
+
+function ResetPasswordPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = useMemo(() => searchParams.get("token") ?? "", [searchParams]);

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { AppShell } from "@/components/app-shell";
@@ -38,6 +38,14 @@ function fromCents(value: number): string {
 }
 
 export default function InvoiceNewPage() {
+  return (
+    <Suspense fallback={<AppShell title="New Invoice"><PageLoader /></AppShell>}>
+      <InvoiceNewPageContent />
+    </Suspense>
+  );
+}
+
+function InvoiceNewPageContent() {
   const router = useRouter();
   const query = useSearchParams();
   const { pushToast } = useToast();
