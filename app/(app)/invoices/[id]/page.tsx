@@ -50,7 +50,46 @@ interface Payment {
   paidAt: string;
   method: string;
   reference: string | null;
-  note: string | null;
+  notes: string | null;
+}
+
+interface ApiInvoice {
+  id: string;
+  invoiceNumber: string;
+  status: "draft" | "sent" | "partial" | "paid" | "overdue" | "void";
+  clientId: string;
+  currency: string;
+  issueDate: string;
+  dueDate: string;
+  lineItems: LineItem[];
+  subtotal: number;
+  taxRate: number | null;
+  taxAmount: number;
+  discountType: "percentage" | "fixed" | null;
+  discountValue: number;
+  discountAmount: number;
+  total: number;
+  amountPaid: number;
+  amountDue: number;
+  notes: string | null;
+  terms: string | null;
+  sentAt: string | null;
+  paidAt: string | null;
+  createdAt: string;
+}
+
+interface ClientWithStats {
+  id: string;
+  name: string;
+  email: string | null;
+  company: string | null;
+  address: Address | null;
+}
+
+interface BusinessProfile {
+  businessName: string;
+  logoUrl: string | null;
+  address: Address | null;
 }
 
 interface LineItem {
@@ -80,16 +119,16 @@ interface Invoice {
   dueDate: string;
   lineItems: LineItem[];
   subtotal: number;
-  taxRate: number;
+  taxRate: number | null;
   taxAmount: number;
-  discountType: "percentage" | "fixed";
+  discountType: "percentage" | "fixed" | null;
   discountValue: number;
   discountAmount: number;
   total: number;
   amountPaid: number;
   amountDue: number;
   notes: string | null;
-  paymentTerms: string | null;
+  terms: string | null;
   sentAt: string | null;
   paidAt: string | null;
   payments: Payment[];
@@ -419,7 +458,7 @@ function RecordPaymentModal({ open, onClose, invoice, onSuccess }: RecordPayment
           paidAt,
           method,
           reference: reference.trim() || undefined,
-          note: note.trim() || undefined,
+          notes: note.trim() || undefined,
         }),
       });
       onClose();
@@ -757,10 +796,10 @@ function InvoicePreviewCard({ invoice }: { invoice: Invoice }) {
             <span style={{ color: "var(--text-secondary)" }}>Subtotal</span>
             <span style={{ color: "var(--text-primary)" }}>{formatMoney(invoice.subtotal, currency)}</span>
           </div>
-          {(invoice.taxRate > 0 || invoice.taxAmount > 0) && (
+          {((invoice.taxRate ?? 0) > 0 || invoice.taxAmount > 0) && (
             <div className="flex justify-between text-sm">
               <span style={{ color: "var(--text-secondary)" }}>
-                Tax ({invoice.taxRate}%)
+                Tax ({invoice.taxRate ?? 0}%)
               </span>
               <span style={{ color: "var(--text-primary)" }}>{formatMoney(invoice.taxAmount, currency)}</span>
             </div>
@@ -813,7 +852,7 @@ function InvoicePreviewCard({ invoice }: { invoice: Invoice }) {
       </div>
 
       {/* Notes / payment terms */}
-      {(invoice.notes || invoice.paymentTerms) && (
+      {(invoice.notes || invoice.terms) && (
         <div
           className="mt-8 border-t pt-6 space-y-4"
           style={{ borderColor: "var(--border-primary)" }}
@@ -828,13 +867,13 @@ function InvoicePreviewCard({ invoice }: { invoice: Invoice }) {
               </p>
             </div>
           )}
-          {invoice.paymentTerms && (
+          {invoice.terms && (
             <div>
               <p className="mb-1 text-xs font-medium uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
                 Payment Terms
               </p>
               <p className="text-sm whitespace-pre-wrap" style={{ color: "var(--text-secondary)" }}>
-                {invoice.paymentTerms}
+                {invoice.terms}
               </p>
             </div>
           )}
@@ -922,7 +961,7 @@ function PaymentHistoryCard({ invoice, onDeletePayment, deletingPaymentId }: Pay
                 {PAYMENT_METHOD_LABELS[p.method] ?? p.method}
               </td>
               <td className="px-6 py-3" style={{ color: "var(--text-muted)" }}>
-                {[p.reference, p.note].filter(Boolean).join(" · ") || "—"}
+                {[p.reference, p.notes].filter(Boolean).join(" · ") || "—"}
               </td>
               <td className="px-6 py-3 text-right">
                 <button
@@ -974,8 +1013,23 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     setError(null);
     setNotFound(false);
     try {
-      const res = await requestJson<ApiEnvelope<Invoice>>(`/api/invoices/${id}`);
-      setInvoice(res.data);
+      const invoiceRes = await requestJson<ApiEnvelope<ApiInvoice>>(`/api/invoices/${id}`);
+      const [clientRes, profileRes, paymentsRes] = await Promise.all([
+        requestJson<ApiEnvelope<ClientWithStats>>(`/api/clients/${invoiceRes.data.clientId}`),
+        requestJson<ApiEnvelope<BusinessProfile>>("/api/profile"),
+        requestJson<ApiEnvelope<Payment[]>>(`/api/invoices/${id}/payments`),
+      ]);
+      setInvoice({
+        ...invoiceRes.data,
+        clientName: clientRes.data.name,
+        clientEmail: clientRes.data.email,
+        clientCompany: clientRes.data.company,
+        clientAddress: clientRes.data.address,
+        businessName: profileRes.data.businessName,
+        businessAddress: profileRes.data.address,
+        businessLogoUrl: profileRes.data.logoUrl,
+        payments: paymentsRes.data,
+      });
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 404) {
         setNotFound(true);
@@ -1093,6 +1147,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
             className="inline-flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-[var(--bg-hover)]"
             style={{ color: "var(--text-secondary)" }}
             title="Back to Invoices"
+            aria-label="Back to Invoices"
           >
             <ArrowLeft size={18} strokeWidth={1.5} />
           </Link>

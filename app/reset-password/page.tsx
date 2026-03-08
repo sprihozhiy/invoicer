@@ -45,13 +45,13 @@ function ResetPasswordForm() {
       await requestJson<{ success: true }>("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token, newPassword: password }),
       });
       router.push("/login?reset=1");
     } catch (err) {
       if (err instanceof ApiClientError) {
-        if (err.code === "TOKEN_EXPIRED") {
-          setErrors({ general: "This reset link has expired. Request a new one." });
+        if (err.code === "TOKEN_INVALID") {
+          setErrors({ general: "This reset link is invalid or expired. Request a new one." });
         } else if (err.code === "TOKEN_USED") {
           setErrors({ general: "This reset link has already been used. Request a new one." });
         } else {

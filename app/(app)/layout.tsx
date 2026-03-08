@@ -186,7 +186,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Close mobile sidebar on navigation
   useEffect(() => {
-    setMobileOpen(false);
+    const id = window.requestAnimationFrame(() => {
+      setMobileOpen(false);
+    });
+    return () => window.cancelAnimationFrame(id);
   }, [pathname]);
 
   const signOut = async () => {

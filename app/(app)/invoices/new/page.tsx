@@ -627,7 +627,7 @@ export default function NewInvoicePage() {
         dueDate,
         lineItems: lineItems.map((row) => ({
           description: row.description,
-          quantity: Math.round(parseFloat(row.quantity) || 1),
+          quantity: parseFloat(row.quantity) || 1,
           unitPrice: parseCents(row.unitPrice),
           taxable: row.taxable,
         })),
@@ -637,7 +637,7 @@ export default function NewInvoicePage() {
           ? discountValueNum
           : parseCents(discountValue),
         notes: notes.trim() || null,
-        paymentTerms: paymentTerms.trim() || null,
+        terms: paymentTerms.trim() || null,
         currency,
       };
       const res = await requestJson<ApiEnvelope<{ id: string }>>("/api/invoices", {
