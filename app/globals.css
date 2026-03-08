@@ -1,7 +1,51 @@
 @import "tailwindcss";
 
+/* ── Design System Tokens ── */
 :root {
-  --color-bg-primary: #0b0b0f;
+  /* Backgrounds */
+  --bg-primary: #0f0f0f;
+  --bg-surface: #1a1a1a;
+  --bg-elevated: #242424;
+  --bg-hover: #2e2e2e;
+
+  /* Text */
+  --text-primary: #f5f5f5;
+  --text-secondary: #a0a0a0;
+  --text-muted: #6b6b6b;
+
+  /* Borders */
+  --border-primary: #2e2e2e;
+  --border-focus: #6366f1;
+
+  /* Accent (Indigo) */
+  --accent-primary: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-active: #4f46e5;
+
+  /* Semantic */
+  --success-fg: #22c55e;
+  --success-bg: #052e16;
+  --warning-fg: #f59e0b;
+  --warning-bg: #431407;
+  --danger-fg: #ef4444;
+  --danger-bg: #450a0a;
+  --info-fg: #6366f1;
+  --info-bg: #1e1b4b;
+  --neutral-fg: #a0a0a0;
+  --neutral-bg: #1c1c1c;
+  --void-fg: #6b6b6b;
+  --void-bg: #171717;
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --nav-height: 72px;
+
+  /* Animation */
+  --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Legacy aliases for landing page compat */
+  --color-bg-primary: #0f0f0f;
   --color-surface: #1a1a1a;
   --color-elevated: #242424;
   --color-border: #2e2e2e;
@@ -13,55 +57,77 @@
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
-  --color-gradient-start: rgba(99, 102, 241, 0.2);
-  --color-gradient-end: rgba(11, 11, 15, 0);
+  --color-gradient-start: rgba(99, 102, 241, 0.15);
+  --color-gradient-end: rgba(15, 15, 15, 0);
 }
 
 @theme inline {
-  --font-sans: var(--font-lexend);
-  --color-background: var(--color-bg-primary);
-  --color-foreground: var(--color-text-primary);
+  --font-sans: var(--font-inter);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+}
+
+/* ── Base ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  font-family: var(--font-lexend), sans-serif;
-  background-color: var(--color-bg-primary);
-  color: var(--color-text-primary);
+  font-family: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
-body::before {
+/* ── Focus Ring ── */
+:where(a, button, input, textarea, select):focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* ── Landing page gradient ── */
+.landing-bg::before {
   content: "";
   position: fixed;
   inset: 0 0 auto 0;
   height: 40rem;
   pointer-events: none;
   z-index: -1;
-  background: radial-gradient(circle at top center, var(--color-gradient-start), var(--color-gradient-end) 70%);
+  background: radial-gradient(
+    circle at top center,
+    var(--color-gradient-start),
+    var(--color-gradient-end) 70%
+  );
 }
 
-:where(a, button, input, textarea, select):focus-visible {
-  outline: 2px solid var(--color-accent-primary);
-  outline-offset: 2px;
-}
-
+/* ── Scroll Reveal ── */
 .reveal {
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity 0.8s ease, transform 0.8s ease;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
 }
 
+/* ── Hero animations ── */
 .hero-card-enter {
-  animation: hero-card-enter 0.8s ease forwards;
+  animation: hero-card-enter 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
-
 .hero-row-enter {
-  animation: hero-row-enter 0.6s ease forwards;
+  animation: hero-row-enter 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   opacity: 0;
 }
 
@@ -75,7 +141,6 @@ body::before {
     transform: rotateX(0deg) scale(1);
   }
 }
-
 @keyframes hero-row-enter {
   from {
     opacity: 0;
@@ -85,4 +150,88 @@ body::before {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ── Toast animations ── */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+.toast-enter {
+  animation: toast-in 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.toast-exit {
+  animation: toast-out 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Modal animation ── */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.modal-enter {
+  animation: modal-in 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Sidebar drawer ── */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.slide-in-left {
+  animation: slide-in-left 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Table base ── */
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.app-table th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-primary);
+}
+.app-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-primary);
+}
+.app-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.app-table tbody tr:hover {
+  background-color: var(--bg-hover);
 }
