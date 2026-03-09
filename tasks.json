@@ -1,0 +1,413 @@
+{
+  "project": "invoicer",
+  "generatedAt": "2026-03-09T00:00:00.000Z",
+  "existingProject": true,
+  "phases": [
+    {
+      "id": "phase-1-infrastructure",
+      "name": "Database Infrastructure",
+      "description": "Install packages, define Drizzle schema, create DB singleton, generate migrations, and configure Vitest.",
+      "tasks": [
+        {
+          "id": "task-1-1-deps",
+          "name": "Install npm dependencies and add scripts",
+          "agent": "backend-dev",
+          "dependsOn": [],
+          "files": ["package.json"],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, and functional-spec.md §F1. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nAdd the following packages to package.json and run npm install:\n- dependencies: drizzle-orm@^0.38.0, better-sqlite3@^11.0.0, zod@^3.24.0\n- devDependencies: drizzle-kit@^0.29.0, @types/better-sqlite3@^7.6.0, vitest@^2.0.0, @vitejs/plugin-react@^4.0.0\n\nAlso add these npm scripts to the scripts section of package.json:\n  \"db:generate\": \"drizzle-kit generate\"\n  \"db:migrate\":  \"drizzle-kit migrate\"\n  \"db:studio\":   \"drizzle-kit studio\"\n  \"test\":        \"vitest run\"\n  \"test:watch\":  \"vitest\"\n\nDo not remove or modify any existing scripts. After running npm install, verify that `import Database from 'better-sqlite3'`, `import { drizzle } from 'drizzle-orm/better-sqlite3'`, and `import { z } from 'zod'` all resolve without errors.",
+          "acceptanceCriteria": [
+            "npm install completes without errors on Node.js 18",
+            "drizzle-orm, better-sqlite3, zod listed in dependencies in package.json",
+            "drizzle-kit, @types/better-sqlite3, vitest, @vitejs/plugin-react listed in devDependencies",
+            "npm scripts db:generate, db:migrate, db:studio, test, test:watch added to package.json",
+            "npx drizzle-kit --version prints a version string without error"
+          ],
+          "estimatedFiles": 1
+        },
+        {
+          "id": "task-1-2-schema",
+          "name": "Create Drizzle schema (lib/schema.ts)",
+          "agent": "backend-dev",
+          "dependsOn": ["task-1-1-deps"],
+          "files": ["lib/schema.ts", "lib/models.ts"],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §New Files lib/schema.ts, and lib/models.ts for existing TypeScript interfaces. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nCreate lib/schema.ts defining all nine SQLite tables using drizzle-orm/sqlite-core exactly as specified in integration-spec.md. Tables: users, business_profiles, clients, invoices, payments, catalog_items, access_tokens, refresh_tokens, reset_tokens.\n\nKey requirements:\n- Use text(), integer(), real() column types from 'drizzle-orm/sqlite-core'\n- invoices.lineItems: text('line_items', { mode: 'json' }).$type<LineItem[]>().notNull() — import LineItem from '@/lib/models'\n- business_profiles.userId: uniqueIndex('bp_user_id_idx')\n- refresh_tokens.tokenHash: .unique()\n- users.email: .unique()\n- invoices indexes: invoices_user_id_idx on (userId), invoices_client_id_idx on (clientId), invoices_user_status_idx on (userId, status)\n- clients index: clients_user_id_idx on (userId)\n- catalog_items index: catalog_user_id_idx on (userId)\n- payments index: payments_invoice_id_idx on (invoiceId)\n- Foreign keys with onDelete: 'cascade' on: business_profiles.userId→users.id, clients.userId→users.id, invoices.userId→users.id, payments.invoiceId→invoices.id, access_tokens.userId→users.id, refresh_tokens.userId→users.id, reset_tokens.userId→users.id\n- invoices.clientId→clients.id (no cascade — client deletion is blocked by route logic)\n- File must compile under strict: true TypeScript (existing tsconfig.json)",
+          "acceptanceCriteria": [
+            "lib/schema.ts exports all nine table constants",
+            "npx tsc --noEmit passes with no errors on lib/schema.ts",
+            "users.email declares .unique()",
+            "business_profiles has uniqueIndex on userId column",
+            "refresh_tokens.tokenHash declares .unique()",
+            "invoices has three indexes: userId, clientId, (userId+status)",
+            "invoices.lineItems column typed as LineItem[] via .$type<LineItem[]>()",
+            "All foreign keys declared with correct onDelete rules per spec"
+          ],
+          "estimatedFiles": 2
+        },
+        {
+          "id": "task-1-3-db-config",
+          "name": "Create drizzle.config.ts and lib/db.ts",
+          "agent": "backend-dev",
+          "dependsOn": ["task-1-2-schema"],
+          "files": ["drizzle.config.ts", "lib/db.ts"],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §New Files drizzle.config.ts and lib/db.ts. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nCreate drizzle.config.ts at the project root with exactly:\n  dialect: 'sqlite'\n  schema: './lib/schema.ts'\n  out: './drizzle'\n  dbCredentials.url: process.env.DATABASE_URL ?? './invoicer.db'\n\nCreate lib/db.ts implementing the DB singleton:\n- Export named Db type: ReturnType<typeof drizzle<typeof schema>>\n- Export createDb(sqliteInstance?: InstanceType<typeof Database>): Db — opens Database at process.env.DATABASE_URL ?? './invoicer.db' if no instance supplied; sets PRAGMA journal_mode = WAL; sets PRAGMA foreign_keys = ON; calls migrate(db, { migrationsFolder: join(process.cwd(), 'drizzle') }) synchronously; returns drizzle instance\n- Export db constant using globalThis.__invoicer_db__ guard (same pattern as existing lib/store.ts uses globalThis.__invoicer_store__): globalThis.__invoicer_db__ ?? (globalThis.__invoicer_db__ = createDb())\n- Declare global { var __invoicer_db__: Db | undefined } to satisfy TypeScript strict mode\n- Import * as schema from '@/lib/schema' and pass to drizzle() for typed queries\n\nImplement exactly as shown in integration-spec.md §lib/db.ts.",
+          "acceptanceCriteria": [
+            "drizzle.config.ts default-exports a valid Drizzle config object with dialect: 'sqlite'",
+            "drizzle.config.ts reads DATABASE_URL from process.env with fallback './invoicer.db'",
+            "lib/db.ts exports named db constant and createDb factory function",
+            "createDb sets WAL journal_mode pragma on the SQLite connection",
+            "createDb enables foreign_keys pragma on the SQLite connection",
+            "createDb calls migrate() synchronously before returning",
+            "globalThis.__invoicer_db__ guard prevents double-init on hot reload",
+            "createDb accepts optional sqlite instance for test injection (:memory: databases)",
+            "npx tsc --noEmit passes with no errors"
+          ],
+          "estimatedFiles": 2
+        },
+        {
+          "id": "task-1-4-migrations-vitest",
+          "name": "Generate migration files and create vitest.config.ts",
+          "agent": "backend-dev",
+          "dependsOn": ["task-1-3-db-config"],
+          "files": ["vitest.config.ts", "drizzle/"],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §New Files vitest.config.ts, and functional-spec.md §F14. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nCreate vitest.config.ts at the project root:\n  test.environment: 'node'\n  test.globals: true\n  test.include: ['tests/**/*.test.ts']\n  resolve.alias: { '@': resolve(__dirname, '.') }  (matches tsconfig.json path alias)\n\nThen run `npx drizzle-kit generate` to produce SQL migration files in ./drizzle/. Inspect the generated SQL to confirm it contains all nine CREATE TABLE statements, the correct UNIQUE constraints (users.email, business_profiles.user_id, refresh_tokens.token_hash), and all declared indexes.\n\nRun `npx drizzle-kit migrate` against a temp SQLite path (e.g. DATABASE_URL=./test-migrate.db) to verify migrations apply cleanly, then delete the temp file.\n\nDo NOT run migrations against invoicer.db. The migrate() call in lib/db.ts will apply them at runtime.",
+          "acceptanceCriteria": [
+            "vitest.config.ts exists with environment: 'node', globals: true, include: ['tests/**/*.test.ts']",
+            "'@' alias in vitest.config.ts resolves to project root matching tsconfig.json",
+            "npx vitest run executes without configuration errors",
+            "drizzle/ directory created with at least one .sql migration file",
+            "Generated SQL contains nine CREATE TABLE statements",
+            "Generated SQL includes UNIQUE constraints on users.email, business_profiles.user_id, refresh_tokens.token_hash",
+            "Generated SQL includes all declared indexes",
+            "npx drizzle-kit migrate applies all migrations without errors on a fresh DB",
+            "Re-running npx drizzle-kit migrate is a no-op (idempotent)"
+          ],
+          "estimatedFiles": 3
+        }
+      ]
+    },
+    {
+      "id": "phase-2-validation",
+      "name": "Zod Validation Layer",
+      "description": "Create lib/validators.ts with all Zod input schemas and add the parseBody() helper to lib/api.ts.",
+      "tasks": [
+        {
+          "id": "task-2-1-validators",
+          "name": "Create lib/validators.ts and add parseBody to lib/api.ts",
+          "agent": "backend-dev",
+          "dependsOn": ["task-1-1-deps"],
+          "files": ["lib/validators.ts", "lib/api.ts"],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §New Files lib/validators.ts and §Modified Files lib/api.ts, and functional-spec.md §F6. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nCreate lib/validators.ts exporting all 13 Zod schemas exactly as defined in integration-spec.md §lib/validators.ts:\n  RegisterSchema, LoginSchema, ForgotPasswordSchema, ResetPasswordSchema,\n  ProfilePatchSchema (with .strict()),\n  ClientCreateSchema, ClientPatchSchema (= ClientCreateSchema.partial()),\n  InvoiceCreateSchema, InvoicePatchSchema (= InvoiceCreateSchema.partial()), InvoiceSendSchema,\n  PaymentCreateSchema,\n  CatalogCreateSchema, CatalogPatchSchema (= CatalogCreateSchema.partial())\n\nInternal building blocks (not exported): AddressSchema (nullish), LineItemInputSchema, isoDate regex /^\\d{4}-\\d{2}-\\d{2}$/.\n\nRequired transforms:\n- email fields: .toLowerCase()\n- name, businessName, company, description fields: .trim()\n- currency and country codes: .toUpperCase()\n\nModify lib/api.ts — addition only, do not modify or remove any existing exports:\nAdd parseBody<T>(schema: ZodSchema<T>, body: unknown): { ok: true; data: T } | { ok: false; response: NextResponse }\n- Calls schema.safeParse(body)\n- On failure: returns { ok: false, response: errorResponse('VALIDATION_ERROR', 'Invalid input.', 400, { details: result.error.flatten().fieldErrors }) }\n- On success: returns { ok: true, data: result.data }\n- Add imports: import type { ZodSchema, ZodError } from 'zod' (type-only to avoid bundling Zod in client code)",
+          "acceptanceCriteria": [
+            "lib/validators.ts exports all 13 named schemas",
+            "RegisterSchema rejects missing name/email/password and password shorter than 8 chars",
+            "InvoiceCreateSchema rejects empty lineItems array and non-UUID clientId",
+            "ProfilePatchSchema.parse({}) succeeds (all fields optional)",
+            "ProfilePatchSchema rejects unknown keys due to .strict()",
+            "email fields normalised to lowercase via .toLowerCase() transform",
+            "currency and country codes uppercased via .toUpperCase() transform",
+            "parseBody added to lib/api.ts and returns { ok: false } with 400 + VALIDATION_ERROR on schema failure",
+            "parseBody returns { ok: true, data: T } on valid input",
+            "All pre-existing lib/api.ts exports are unchanged",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 2
+        }
+      ]
+    },
+    {
+      "id": "phase-3-auth",
+      "name": "Auth Layer Migration",
+      "description": "Rewrite lib/auth.ts to use SQLite and migrate all six auth API routes from in-memory store to Drizzle queries.",
+      "tasks": [
+        {
+          "id": "task-3-1-auth-lib",
+          "name": "Rewrite lib/auth.ts for SQLite",
+          "agent": "backend-dev",
+          "dependsOn": ["task-1-3-db-config", "task-2-1-validators"],
+          "files": ["lib/auth.ts"],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Modified Files lib/auth.ts, and functional-spec.md §F7. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nRewrite lib/auth.ts replacing all getStore() calls with Drizzle queries via db from '@/lib/db'. Import table schemas from '@/lib/schema'. Keep all exported function signatures and cookie names identical to the current implementation.\n\nissueSession(userId: string):\n- Generate accessToken = randomToken('at_') from lib/ids.ts\n- Generate refreshToken = randomToken('rt_') from lib/ids.ts\n- Insert into access_tokens: { token: accessToken, userId, expiresAt: iso string for nowIso() + 15 minutes }\n- Insert into refresh_tokens: { id: uuid(), userId, tokenHash: sha256(refreshToken), expiresAt: nowIso() + 7 days, createdAt: nowIso(), usedAt: null }\n- Return { accessToken, refreshToken } (raw, unhashed tokens)\n\nrequireAuth(req: NextRequest): { userId: string }\n- Read invoicer_access cookie value\n- Query: db.select().from(accessTokens).where(and(eq(accessTokens.token, token), gt(accessTokens.expiresAt, nowIso())))\n- If no row found: throw errorResponse('UNAUTHORIZED', 'Unauthorized.', 401)\n- Return { userId: row.userId }\n\nrotateRefreshToken(rawToken: string):\n- hash = sha256(rawToken)\n- Query refresh_tokens WHERE tokenHash=hash AND usedAt IS NULL AND expiresAt > nowIso()\n- If not found: throw 401\n- UPDATE refresh_tokens SET usedAt=nowIso() WHERE id=row.id\n- Call issueSession(row.userId); return new tokens",
+          "acceptanceCriteria": [
+            "issueSession inserts one row each into access_tokens and refresh_tokens",
+            "issueSession stores sha256 hash of refreshToken (never raw token) in refresh_tokens.tokenHash",
+            "requireAuth queries access_tokens by token value with expiry check",
+            "requireAuth returns { userId: string } on valid unexpired token",
+            "requireAuth throws 401 errorResponse if token missing or expired",
+            "rotateRefreshToken marks old row usedAt before issuing new pair",
+            "rotateRefreshToken throws 401 if token already used or expired",
+            "Cookie names invoicer_access and invoicer_refresh unchanged",
+            "No imports from lib/store remain in lib/auth.ts",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 1
+        },
+        {
+          "id": "task-3-2-auth-routes",
+          "name": "Migrate all six auth API routes to SQLite",
+          "agent": "backend-dev",
+          "dependsOn": ["task-3-1-auth-lib"],
+          "files": [
+            "app/api/auth/register/route.ts",
+            "app/api/auth/login/route.ts",
+            "app/api/auth/logout/route.ts",
+            "app/api/auth/refresh/route.ts",
+            "app/api/auth/forgot-password/route.ts",
+            "app/api/auth/reset-password/route.ts"
+          ],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Auth Routes, and functional-spec.md §F7. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nRewrite all six auth routes replacing store access with Drizzle queries. Use parseBody() from lib/api.ts for input validation.\n\napp/api/auth/register/route.ts:\n1. parseBody(RegisterSchema, body) — return early on failure\n2. Check SELECT id FROM users WHERE email=? — return 409 EMAIL_TAKEN if found\n3. Hash: crypto.scryptSync(password, 'invoicer-salt', 64).toString('hex')\n4. Insert users row: { id: uuid(), email, name, passwordHash, createdAt: nowIso(), updatedAt: nowIso() }\n5. Insert business_profiles row: { id: uuid(), userId, businessName: name, defaultCurrency: 'USD', defaultPaymentTermsDays: 30, invoicePrefix: 'INV', nextInvoiceNumber: 1, createdAt: nowIso(), updatedAt: nowIso() }\n6. issueSession(userId), set cookies, return 201 successResponse({ id, email, name })\n\napp/api/auth/login/route.ts:\n1. parseBody(LoginSchema, body)\n2. Query users WHERE email=? — 401 INVALID_CREDENTIALS if not found\n3. Verify: crypto.scryptSync(password, 'invoicer-salt', 64).toString('hex') === user.passwordHash — 401 if mismatch\n4. issueSession(userId), set cookies, return 200\n\napp/api/auth/logout/route.ts:\n1. Read invoicer_refresh and invoicer_access cookies\n2. DELETE refresh_tokens WHERE tokenHash=sha256(refreshCookie)\n3. DELETE access_tokens WHERE token=accessCookie\n4. Clear both cookies regardless; return actionResponse()\n\napp/api/auth/refresh/route.ts:\n1. Read invoicer_refresh cookie; 401 if missing\n2. Call rotateRefreshToken(rawToken) from lib/auth.ts\n3. Set new cookies; return actionResponse()\n\napp/api/auth/forgot-password/route.ts:\n1. parseBody(ForgotPasswordSchema, body)\n2. Query users WHERE email=? — silently return { success: true } if not found\n3. rawToken = randomToken('rst_'); tokenHash = sha256(rawToken)\n4. Insert reset_tokens: { id: uuid(), userId, tokenHash, rawToken, expiresAt: nowIso()+1hr, createdAt: nowIso() }\n5. Return { success: true } (no email sent)\n\napp/api/auth/reset-password/route.ts:\n1. parseBody(ResetPasswordSchema, body)\n2. Query reset_tokens WHERE rawToken=token AND usedAt IS NULL AND expiresAt > nowIso() — 400 INVALID_TOKEN if not found\n3. UPDATE users SET passwordHash=newHash, updatedAt=nowIso() WHERE id=row.userId\n4. UPDATE reset_tokens SET usedAt=nowIso() WHERE id=row.id\n5. Return actionResponse()",
+          "acceptanceCriteria": [
+            "POST /api/auth/register returns 409 EMAIL_TAKEN if email exists in users table",
+            "POST /api/auth/register inserts rows into both users and business_profiles on success",
+            "POST /api/auth/register returns 201 with { data: { id, email, name } }",
+            "POST /api/auth/login returns 401 INVALID_CREDENTIALS for unknown email or wrong password",
+            "POST /api/auth/logout clears both cookies even if DB rows not found",
+            "POST /api/auth/refresh returns 401 if refresh token is used or expired",
+            "POST /api/auth/forgot-password returns { success: true } for unknown email (no enumeration)",
+            "POST /api/auth/reset-password returns 400 INVALID_TOKEN for expired or used token",
+            "All routes return 400 VALIDATION_ERROR on Zod schema failure",
+            "No imports from lib/store remain in any auth route file",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 6
+        }
+      ]
+    },
+    {
+      "id": "phase-4-profile-catalog",
+      "name": "Profile, Domain, and Catalog Migration",
+      "description": "Migrate lib/domain.ts helper functions and all profile and catalog API routes to Drizzle.",
+      "tasks": [
+        {
+          "id": "task-4-1-domain",
+          "name": "Migrate lib/domain.ts to SQLite with address helpers",
+          "agent": "backend-dev",
+          "dependsOn": ["task-3-1-auth-lib"],
+          "files": ["lib/domain.ts"],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Modified Files lib/domain.ts. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nRewrite lib/domain.ts replacing all store.* reads/writes with Drizzle queries. Keep all exported function signatures identical.\n\ngetClientOrFail(userId, clientId): db.select().from(clients).where(and(eq(clients.id, clientId), eq(clients.userId, userId))); throw errorResponse('NOT_FOUND', ..., 404) if empty; return flatToAddress(row).\n\ngetInvoiceOrFail(userId, id): query invoices WHERE id=id AND userId=userId AND deletedAt IS NULL; throw 404 NOT_FOUND if missing.\n\ngetProfileOrFail(userId): query business_profiles WHERE userId=userId; throw 404 NOT_FOUND if missing; return with nested address reconstituted.\n\napplyProfilePatch(profile, patch): pure merge — keep unchanged.\n\nAdd and export two new helpers used by all routes that handle addresses:\n\nflatToAddress(row): Given a DB row with addressLine1/addressLine2/addressCity/addressState/addressPostalCode/addressCountry columns, return null if addressLine1 is null, otherwise return { line1, line2, city, state, postalCode, country } matching the Address interface in lib/models.ts.\n\naddressToFlat(address): Given an Address object or null/undefined, return a flat object with keys addressLine1, addressLine2, addressCity, addressState, addressPostalCode, addressCountry for use in Drizzle INSERT/UPDATE payloads. Returns all-null flat object if address is null.",
+          "acceptanceCriteria": [
+            "getClientOrFail throws 404 NOT_FOUND when client not found or belongs to different user",
+            "getInvoiceOrFail throws 404 for soft-deleted invoices (deletedAt IS NOT NULL)",
+            "getProfileOrFail throws 404 when no business_profiles row exists for userId",
+            "flatToAddress returns null when addressLine1 is null",
+            "flatToAddress returns nested Address object matching lib/models.ts Address interface",
+            "addressToFlat returns flat columns object for INSERT/UPDATE with all-null values when address is null",
+            "No imports from lib/store remain in lib/domain.ts",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 1
+        },
+        {
+          "id": "task-4-2-profile-routes",
+          "name": "Migrate profile API routes to SQLite",
+          "agent": "backend-dev",
+          "dependsOn": ["task-4-1-domain", "task-2-1-validators"],
+          "files": [
+            "app/api/profile/route.ts",
+            "app/api/profile/logo/route.ts"
+          ],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Profile Routes, and functional-spec.md §F12. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nRewrite app/api/profile/route.ts:\n- GET: requireAuth(req); call getProfileOrFail(userId) from lib/domain.ts; reconstruct address with flatToAddress; return successResponse({ ...profile, address }).\n- PATCH: requireAuth(req); parseBody(ProfilePatchSchema, body); if body.address provided, flatten with addressToFlat and merge into update payload; set updatedAt=nowIso(); db UPDATE business_profiles WHERE userId=?; query updated row; return successResponse with reconstituted address.\n\nRewrite app/api/profile/logo/route.ts:\n- POST: requireAuth(req); parse multipart/form-data body (use req.formData()); get the file field; validate MIME type is image/jpeg or image/png (400 INVALID_FILE_TYPE if not); validate size <= 2MB (400 FILE_TOO_LARGE if over); generate stub URL: `https://cdn.invoicer.local/logos/${uuid()}.${ext}`; UPDATE business_profiles SET logoUrl=stubUrl, updatedAt=nowIso() WHERE userId=?; discard file bytes; return successResponse with updated profile.\n- DELETE: requireAuth(req); UPDATE business_profiles SET logoUrl=NULL, updatedAt=nowIso() WHERE userId=?; return successResponse with updated profile.",
+          "acceptanceCriteria": [
+            "GET /api/profile returns BusinessProfile with nested address object when addressLine1 is set",
+            "PATCH /api/profile flattens address to individual columns before UPDATE",
+            "PATCH /api/profile returns 400 VALIDATION_ERROR on ProfilePatchSchema failure",
+            "POST /api/profile/logo returns 400 on non-image MIME type",
+            "POST /api/profile/logo returns 400 when file exceeds 2MB",
+            "POST /api/profile/logo updates logoUrl in business_profiles, discards file bytes",
+            "DELETE /api/profile/logo sets logoUrl to NULL in business_profiles",
+            "No imports from lib/store remain in profile route files",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 2
+        },
+        {
+          "id": "task-4-3-catalog-routes",
+          "name": "Migrate catalog API routes to SQLite",
+          "agent": "backend-dev",
+          "dependsOn": ["task-4-1-domain", "task-2-1-validators"],
+          "files": [
+            "app/api/catalog/route.ts",
+            "app/api/catalog/[id]/route.ts"
+          ],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Catalog Routes, and functional-spec.md §F11. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nRewrite app/api/catalog/route.ts:\n- GET: requireAuth(req); build query: SELECT * FROM catalog_items WHERE userId=?; if search param provided, add WHERE (name LIKE '%s%' OR description LIKE '%s%') (case-insensitive via SQLite LIKE); ORDER BY name ASC; return { data: CatalogItem[] } (no pagination — catalog returns all items).\n- POST: requireAuth(req); parseBody(CatalogCreateSchema, body); SELECT COUNT(*) FROM catalog_items WHERE userId=? — return 400 CATALOG_LIMIT_EXCEEDED if count >= 500; INSERT row { id: uuid(), userId, ...data, createdAt: nowIso(), updatedAt: nowIso() }; return 201 successResponse.\n\nRewrite app/api/catalog/[id]/route.ts:\n- PATCH: requireAuth(req); parseBody(CatalogPatchSchema, body); verify ownership: SELECT * FROM catalog_items WHERE id=? AND userId=? — 404 NOT_FOUND if missing; UPDATE row with patch fields + updatedAt=nowIso(); return successResponse with updated item.\n- DELETE: requireAuth(req); verify ownership (same query); DELETE FROM catalog_items WHERE id=? AND userId=?; return actionResponse().",
+          "acceptanceCriteria": [
+            "GET /api/catalog returns items sorted by name ASC",
+            "GET /api/catalog?search=x filters on name and description case-insensitively",
+            "POST /api/catalog returns 400 CATALOG_LIMIT_EXCEEDED when user has 500 or more items",
+            "POST /api/catalog inserts row and returns 201 with created item",
+            "PATCH /api/catalog/[id] returns 404 if item does not belong to authenticated user",
+            "DELETE /api/catalog/[id] removes the row from catalog_items",
+            "No imports from lib/store remain in catalog route files",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 2
+        }
+      ]
+    },
+    {
+      "id": "phase-5-clients",
+      "name": "Client Routes Migration",
+      "description": "Migrate all client routes from in-memory store to Drizzle, including address flattening and SQL aggregate stats.",
+      "tasks": [
+        {
+          "id": "task-5-1-client-routes",
+          "name": "Migrate all client API routes to SQLite",
+          "agent": "backend-dev",
+          "dependsOn": ["task-4-1-domain", "task-2-1-validators"],
+          "files": [
+            "app/api/clients/route.ts",
+            "app/api/clients/[id]/route.ts",
+            "app/api/clients/[id]/invoices/route.ts"
+          ],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Client Routes, and functional-spec.md §F10. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nRewrite app/api/clients/route.ts:\n- GET: requireAuth(req); parsePagination() from lib/pagination.ts; build query SELECT * FROM clients WHERE userId=?; if search param, add LIKE '%s%' on name, company, email columns; apply offset/limit; run COUNT query for meta.total; call flatToAddress on each row; return paginatedResponse.\n- POST: requireAuth(req); parseBody(ClientCreateSchema, body); flatten address via addressToFlat; INSERT clients row { id: uuid(), userId, name, email, phone, company, ...flatAddress, currency, notes, createdAt: nowIso(), updatedAt: nowIso() }; call flatToAddress on inserted row; return 201 successResponse.\n\nRewrite app/api/clients/[id]/route.ts:\n- GET: requireAuth(req); getClientOrFail(userId, id) — already reconstitutes address; run aggregate: SELECT COALESCE(SUM(total),0) AS totalInvoiced, COALESCE(SUM(amount_paid),0) AS totalPaid, COALESCE(SUM(amount_due),0) AS totalOutstanding, MAX(issue_date) AS lastInvoiceDate, COUNT(*) AS invoiceCount FROM invoices WHERE clientId=? AND userId=? AND deletedAt IS NULL AND status != 'void'; return successResponse({ ...client, stats }).\n- PATCH: requireAuth(req); parseBody(ClientPatchSchema, body); getClientOrFail; flatten address if present; UPDATE clients row + updatedAt=nowIso(); return updated client with reconstituted address.\n- DELETE: requireAuth(req); getClientOrFail; SELECT id FROM invoices WHERE clientId=? AND deletedAt IS NULL AND status != 'void' LIMIT 1 — 409 CLIENT_HAS_INVOICES if found; DELETE FROM clients WHERE id=?; return actionResponse().\n\nRewrite app/api/clients/[id]/invoices/route.ts:\n- GET: requireAuth(req); parsePagination(); optional status filter (if status=overdue use status IN ('sent','partial') AND dueDate < todayUtc()); query invoices WHERE clientId=? AND userId=? AND deletedAt IS NULL; apply withComputedStatus() from lib/invoices.ts on each result; return paginatedResponse.",
+          "acceptanceCriteria": [
+            "GET /api/clients returns paginated list with address reconstituted from flat columns",
+            "POST /api/clients flattens nested address object to individual columns before INSERT",
+            "GET /api/clients/[id] includes stats object computed via SQL aggregate query",
+            "GET /api/clients/[id] excludes void invoices from all stats aggregates",
+            "DELETE /api/clients/[id] returns 409 CLIENT_HAS_INVOICES when active non-void invoices exist",
+            "GET /api/clients/[id]/invoices applies withComputedStatus() to each result",
+            "GET /api/clients/[id]/invoices supports status=overdue virtual filter",
+            "No imports from lib/store remain in any client route file",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 3
+        }
+      ]
+    },
+    {
+      "id": "phase-6-invoices",
+      "name": "Invoice Routes Migration",
+      "description": "Migrate all invoice CRUD, action, and payment routes from in-memory store to Drizzle.",
+      "tasks": [
+        {
+          "id": "task-6-1-invoice-crud",
+          "name": "Migrate invoice list, create, next-number, detail, patch, delete routes",
+          "agent": "backend-dev",
+          "dependsOn": ["task-4-1-domain", "task-2-1-validators"],
+          "files": [
+            "app/api/invoices/route.ts",
+            "app/api/invoices/next-number/route.ts",
+            "app/api/invoices/[id]/route.ts",
+            "lib/invoices.ts"
+          ],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Invoice Routes (GET /api/invoices, POST /api/invoices, GET /api/invoices/next-number, GET/PATCH/DELETE /api/invoices/[id]), and functional-spec.md §F8. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nModify lib/invoices.ts: remove any direct store imports if present. computeTotals(), withComputedStatus(), toSummary() are pure functions — do not modify their signatures or logic.\n\nRewrite app/api/invoices/route.ts:\n- GET: requireAuth(req); parsePagination(); JOIN invoices with clients on clientId for search support; base WHERE: invoices.userId=? AND invoices.deletedAt IS NULL; status filter: if status='overdue' translate to invoices.status IN ('sent','partial') AND invoices.dueDate < todayUtc(); other status values filter invoices.status=? directly; search: LIKE on invoices.invoiceNumber OR clients.name; sortBy maps to column (createdAt→created_at, dueDate→due_date, total→total, invoiceNumber→invoice_number), sortDir asc/desc; apply withComputedStatus() on each row; return paginatedResponse.\n- POST: requireAuth(req); parseBody(InvoiceCreateSchema, body); verify clientId belongs to user — 404 NOT_FOUND if not; if invoiceNumber provided, check SELECT id FROM invoices WHERE invoiceNumber=? AND userId=? AND deletedAt IS NULL — 409 DUPLICATE_INVOICE_NUMBER if found; run SQLite transaction via db.transaction(): read profile, UPDATE business_profiles SET nextInvoiceNumber=nextInvoiceNumber+1 WHERE userId=? RETURNING nextInvoiceNumber, format number as `${prefix}-${String(n).padStart(4,'0')}`, assign uuid() to any lineItems without id, call computeTotals() from lib/invoices.ts, INSERT invoices row; return 201 successResponse.\n\nRewrite app/api/invoices/next-number/route.ts:\n- GET: requireAuth(req); getProfileOrFail(userId); format `${prefix}-${String(nextInvoiceNumber).padStart(4,'0')}`; do NOT increment; return successResponse({ invoiceNumber }).\n\nRewrite app/api/invoices/[id]/route.ts:\n- GET: requireAuth(req); query invoices WHERE id=? AND userId=? AND deletedAt IS NULL — 404 if missing; apply withComputedStatus(); return successResponse.\n- PATCH: requireAuth(req); parseBody(InvoicePatchSchema, body); query invoice — 404 if missing; check status==='draft' — 403 FORBIDDEN if not; if lineItems/taxRate/discountType/discountValue in patch, recompute via computeTotals(); UPDATE row + updatedAt=nowIso(); return updated invoice with withComputedStatus().\n- DELETE: requireAuth(req); query invoice — 404 if missing; check status==='draft' — 403 FORBIDDEN if not; UPDATE invoices SET deletedAt=nowIso() WHERE id=?; return actionResponse().",
+          "acceptanceCriteria": [
+            "GET /api/invoices handles status=overdue as a virtual filter (status IN sent/partial AND dueDate < today)",
+            "GET /api/invoices search matches invoice_number OR client name via JOIN",
+            "GET /api/invoices sortBy and sortDir parameters applied correctly",
+            "POST /api/invoices atomically increments nextInvoiceNumber inside a db.transaction()",
+            "POST /api/invoices returns 409 DUPLICATE_INVOICE_NUMBER for duplicate custom invoiceNumber",
+            "POST /api/invoices assigns uuid() to lineItems missing an id field",
+            "PATCH /api/invoices/[id] returns 403 FORBIDDEN if invoice is not in draft status",
+            "DELETE /api/invoices/[id] soft-deletes (sets deletedAt) rather than hard-deleting",
+            "GET /api/invoices/next-number does not increment the counter",
+            "withComputedStatus() applied to all invoice reads",
+            "No imports from lib/store remain in these files",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 4
+        },
+        {
+          "id": "task-6-2-invoice-actions",
+          "name": "Migrate invoice action routes (send, void, duplicate, pdf)",
+          "agent": "backend-dev",
+          "dependsOn": ["task-6-1-invoice-crud"],
+          "files": [
+            "app/api/invoices/[id]/send/route.ts",
+            "app/api/invoices/[id]/void/route.ts",
+            "app/api/invoices/[id]/duplicate/route.ts",
+            "app/api/invoices/[id]/pdf/route.ts"
+          ],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Invoice Routes (send, void, duplicate, pdf), and functional-spec.md §F8. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nRewrite app/api/invoices/[id]/send/route.ts:\n- POST: requireAuth(req); parseBody(InvoiceSendSchema, body); getInvoiceOrFail(userId, id); check status==='draft' — 400 INVALID_STATUS if not; UPDATE invoices SET status='sent', sentAt=nowIso(), updatedAt=nowIso() WHERE id=?; return actionResponse(). No email sent.\n\nRewrite app/api/invoices/[id]/void/route.ts:\n- POST: requireAuth(req); getInvoiceOrFail(userId, id); check status not in ['paid','void'] — 400 INVALID_STATUS if it is; UPDATE status='void', updatedAt=nowIso(); return actionResponse().\n\nRewrite app/api/invoices/[id]/duplicate/route.ts:\n- POST: requireAuth(req); getInvoiceOrFail(userId, sourceId) to read source; getProfileOrFail(userId) for defaultPaymentTermsDays; run db.transaction(): UPDATE business_profiles SET nextInvoiceNumber=nextInvoiceNumber+1 RETURNING nextInvoiceNumber; format new number; INSERT new invoice row: { id: uuid(), userId, clientId: source.clientId, invoiceNumber: newNumber, status: 'draft', issueDate: todayUtc(), dueDate: addDaysUtc(todayUtc(), profile.defaultPaymentTermsDays), currency: source.currency, lineItems: source.lineItems, ...computeTotals(source.lineItems, source.taxRate, source.discountType, source.discountValue), amountPaid: 0, sentAt: null, paidAt: null, deletedAt: null, createdAt: nowIso(), updatedAt: nowIso() }; return 201 successResponse with new invoice.\n\nRewrite app/api/invoices/[id]/pdf/route.ts:\n- GET: requireAuth(req); query invoice by id and userId (404 if missing); query clients WHERE id=invoice.clientId; getProfileOrFail(userId); call existing generatePdf() from lib/pdf.ts passing invoice, client, profile data (do not change generatePdf signature); return Response with application/pdf content-type. Do NOT modify lib/pdf.ts.",
+          "acceptanceCriteria": [
+            "POST /api/invoices/[id]/send returns 400 INVALID_STATUS if invoice is not draft",
+            "POST /api/invoices/[id]/send sets status='sent' and sentAt in DB",
+            "POST /api/invoices/[id]/void returns 400 INVALID_STATUS if invoice is paid or void",
+            "POST /api/invoices/[id]/duplicate creates a new invoice row with a new uuid and incremented number",
+            "Duplicated invoice has issueDate=today and dueDate=today+defaultPaymentTermsDays",
+            "Duplicated invoice has amountPaid=0, sentAt=null, paidAt=null, status='draft'",
+            "GET /api/invoices/[id]/pdf reads all data from SQLite and calls lib/pdf.ts unchanged",
+            "lib/pdf.ts is not modified",
+            "No imports from lib/store remain in these route files",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 4
+        },
+        {
+          "id": "task-6-3-payment-routes",
+          "name": "Migrate payment recording and deletion routes to SQLite",
+          "agent": "backend-dev",
+          "dependsOn": ["task-6-1-invoice-crud"],
+          "files": [
+            "app/api/invoices/[id]/payments/route.ts",
+            "app/api/invoices/[id]/payments/[paymentId]/route.ts"
+          ],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Invoice Routes (payments), and functional-spec.md §F9. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nRewrite app/api/invoices/[id]/payments/route.ts:\n- GET: requireAuth(req); getInvoiceOrFail(userId, invoiceId) to verify ownership; SELECT * FROM payments WHERE invoiceId=? ORDER BY paidAt DESC, createdAt DESC; return { data: Payment[] }.\n- POST: requireAuth(req); parseBody(PaymentCreateSchema, body); getInvoiceOrFail(userId, invoiceId); check amount <= invoice.amountDue — 400 PAYMENT_EXCEEDS_DUE if over; paidAt = body.paidAt ?? todayUtc(); run db.transaction(): (1) INSERT payments { id: uuid(), invoiceId, amount, method, paidAt, reference, notes, createdAt: nowIso() }, (2) newAmountPaid = invoice.amountPaid + amount, (3) newAmountDue = invoice.total - newAmountPaid, (4) newStatus = newAmountPaid >= invoice.total ? 'paid' : newAmountPaid > 0 ? 'partial' : invoice.status, (5) newPaidAt = newStatus==='paid' ? paidAt : null, (6) UPDATE invoices SET amountPaid=newAmountPaid, amountDue=newAmountDue, status=newStatus, paidAt=newPaidAt, updatedAt=nowIso(); (7) query updated invoice; return 201 { data: { payment, invoice } }.\n\nRewrite app/api/invoices/[id]/payments/[paymentId]/route.ts:\n- DELETE: requireAuth(req); getInvoiceOrFail(userId, invoiceId); run db.transaction(): (1) DELETE FROM payments WHERE id=paymentId AND invoiceId=invoiceId — 404 if row not found, (2) recalculate: SELECT COALESCE(SUM(amount),0) AS newAmountPaid FROM payments WHERE invoiceId=?, (3) newAmountDue = invoice.total - newAmountPaid, (4) newStatus = newAmountPaid >= invoice.total ? 'paid' : newAmountPaid > 0 ? 'partial' : 'sent', (5) newPaidAt = newStatus==='paid' ? invoice.paidAt : null, (6) UPDATE invoices SET amountPaid, amountDue, status, paidAt, updatedAt=nowIso(); return actionResponse().",
+          "acceptanceCriteria": [
+            "POST payment returns 400 PAYMENT_EXCEEDS_DUE when amount exceeds invoice.amountDue",
+            "POST payment sets invoice status to 'paid' and paidAt when amountPaid >= total",
+            "POST payment sets invoice status to 'partial' when 0 < amountPaid < total",
+            "POST payment defaults paidAt to todayUtc() if not provided in body",
+            "POST payment returns 201 with { data: { payment, invoice } }",
+            "DELETE payment recalculates amountPaid as SUM of remaining payments",
+            "DELETE payment clears invoice paidAt when status is no longer 'paid'",
+            "DELETE payment sets status back to 'sent' when amountPaid drops to 0",
+            "All payment mutations execute inside db.transaction()",
+            "No imports from lib/store remain in these files",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 2
+        }
+      ]
+    },
+    {
+      "id": "phase-7-dashboard-cleanup",
+      "name": "Dashboard Migration and Store Removal",
+      "description": "Migrate the dashboard stats route to SQL aggregate queries, then delete lib/store.ts once all callers are migrated.",
+      "tasks": [
+        {
+          "id": "task-7-1-dashboard",
+          "name": "Migrate dashboard stats route to SQL aggregates",
+          "agent": "backend-dev",
+          "dependsOn": ["task-6-1-invoice-crud", "task-5-1-client-routes"],
+          "files": ["app/api/dashboard/stats/route.ts"],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Dashboard Routes, and functional-spec.md §F13. Follow existing naming conventions and patterns. Do not restructure or rename existing files.\n\nRewrite app/api/dashboard/stats/route.ts replacing all in-memory array iterations with SQL aggregate queries:\n\n1. requireAuth(req); getProfileOrFail(userId) to get defaultCurrency.\n\n2. totalOutstanding:\n   SELECT COALESCE(SUM(amount_due),0) FROM invoices\n   WHERE userId=? AND deletedAt IS NULL AND status IN ('sent','partial') AND currency=defaultCurrency\n\n3. totalOverdue:\n   Same as above AND dueDate < todayUtc()\n\n4. paidThisMonth (use monthStartUtc()/monthEndUtc() from lib/time.ts or derive first/last day):\n   SELECT COALESCE(SUM(p.amount),0) FROM payments p\n   JOIN invoices i ON p.invoiceId=i.id\n   WHERE i.userId=? AND i.currency=defaultCurrency AND p.paidAt >= firstOfMonth AND p.paidAt <= lastOfMonth\n\n5. recentInvoices (LIMIT 5):\n   SELECT invoices.*, clients.name AS clientName\n   FROM invoices JOIN clients ON invoices.clientId=clients.id\n   WHERE invoices.userId=? AND invoices.deletedAt IS NULL\n   ORDER BY invoices.createdAt DESC LIMIT 5\n   Apply withComputedStatus() and toSummary() from lib/invoices.ts on each row.\n\n6. overdueInvoices:\n   Same join WHERE invoices.status IN ('sent','partial') AND invoices.dueDate < todayUtc()\n   ORDER BY invoices.dueDate ASC\n   Apply withComputedStatus() and toSummary().\n\nReturn successResponse({ totalOutstanding, totalOverdue, paidThisMonth, recentInvoices, overdueInvoices }).",
+          "acceptanceCriteria": [
+            "totalOutstanding filters by defaultCurrency and status IN ('sent','partial')",
+            "totalOverdue additionally filters by dueDate < todayUtc()",
+            "paidThisMonth joins payments to invoices and filters by current calendar month boundaries",
+            "recentInvoices returns at most 5 results ordered by createdAt DESC",
+            "overdueInvoices ordered by dueDate ASC",
+            "withComputedStatus() applied to both recentInvoices and overdueInvoices",
+            "No imports from lib/store remain in this file",
+            "npx tsc --noEmit passes"
+          ],
+          "estimatedFiles": 1
+        },
+        {
+          "id": "task-7-2-remove-store",
+          "name": "Delete lib/store.ts and verify zero remaining store imports",
+          "agent": "backend-dev",
+          "dependsOn": [
+            "task-3-2-auth-routes",
+            "task-4-2-profile-routes",
+            "task-4-3-catalog-routes",
+            "task-5-1-client-routes",
+            "task-6-2-invoice-actions",
+            "task-6-3-payment-routes",
+            "task-7-1-dashboard"
+          ],
+          "files": ["lib/store.ts"],
+          "prompt": "Read PROJECT_CONTEXT.md, STACK.md, integration-spec.md §Modified Files lib/store.ts DELETED, and functional-spec.md §F15. Follow existing naming conventions and patterns.\n\nBefore deleting, run these two greps across the entire project (excluding node_modules) to find any remaining store references:\n  grep -r 'from.*lib/store' --include='*.ts' --include='*.tsx' .\n  grep -r '__invoicer_store__' --include='*.ts' --include='*.tsx' .\n\nIf any files still import from lib/store or reference __invoicer_store__, fix them before proceeding. After confirming zero results, delete lib/store.ts.\n\nVerify the final state:\n  grep -r 'from.*lib/store' — must return zero results\n  grep -r '__invoicer_store__' — must return zero results\n  npx tsc --noEmit — must pass with zero errors\n  npm run build — must complete without errors",
+          "acceptanceCriteria": [
+            "lib/store.ts file no longer exists in the project",
+            "grep -r 'from.*lib/store' returns zero results (excluding node_modules)",
+            "grep -r '__invoicer_store__' returns zero results (excluding node_modules)",
+            "npx tsc --noEmit passes with zero TypeScript errors",
+            "npm run build completes without errors"
+          ],
+          "estimatedFiles": 1
+        }
+      ]
+    }
+  ]
+}
