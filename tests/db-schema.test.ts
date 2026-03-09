@@ -29,7 +29,7 @@ import { createTestDb } from './helpers/db'
 /** Returns the list of table names in the SQLite DB. */
 function getTableNames(sqlite: InstanceType<typeof Database>): string[] {
   return sqlite
-    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'drizzle_%'")
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle_%'")
     .all()
     .map((r: any) => r.name as string)
     .sort()

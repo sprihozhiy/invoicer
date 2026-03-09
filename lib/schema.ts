@@ -75,6 +75,12 @@ export const invoices = sqliteTable('invoices', {
   id:             text('id').primaryKey(),
   userId:         text('user_id').notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  // REVIEW: No onDelete cascade here (per spec). The route handler checks for
+  // non-void/non-deleted invoices before allowing client deletion. However, void
+  // and soft-deleted invoices still hold this FK reference, so SQLite RESTRICT will
+  // block client deletion even when all invoices are voided or soft-deleted. The
+  // DELETE /api/clients/[id] route must handle the FK constraint error or use
+  // onDelete: 'set null' (requires making clientId nullable).
   clientId:       text('client_id').notNull()
     .references(() => clients.id),
   invoiceNumber:  text('invoice_number').notNull(),
@@ -157,6 +163,10 @@ export const refreshTokens = sqliteTable('refresh_tokens', {
 })
 
 // ── Reset Tokens ──────────────────────────────────────────────────────────────
+// REVIEW: rawToken is stored in plain text per spec (reset-password route queries
+// WHERE raw_token = ?). If the database is compromised, all unexpired reset tokens
+// become immediately usable for account takeover. Consider querying by token_hash
+// (sha256 of the submitted token) instead, which would make raw_token unnecessary.
 export const resetTokens = sqliteTable('reset_tokens', {
   id:        text('id').primaryKey(),
   userId:    text('user_id').notNull()
