@@ -1,1283 +1,1281 @@
-# Invoicer — Integration Specification
+# Invoicer — DB Migration + Zod Validation: Integration Specification
 
-## Base URL
+## Overview
 
-All API routes are served under `/api`. In production: `https://<domain>/api`.
+This document is the complete technical contract for replacing `globalThis.__invoicer_store__`
+with SQLite + Drizzle ORM and adding Zod validation to all API inputs.
 
----
-
-## Authentication Model
-
-All routes are authenticated via an httpOnly cookie named `invoicer_access` (JWT). Routes marked **[PUBLIC]** do not require authentication. Unauthenticated requests to protected routes receive:
-
-```
-HTTP 401
-{ "error": { "code": "UNAUTHORIZED", "message": "Authentication required." } }
-```
-
-The client-side HTTP interceptor automatically handles 401 responses by calling `POST /api/auth/refresh` once before redirecting to `/login`.
+**Legend**:
+- **NEW** — file does not currently exist; must be created
+- **MODIFIED** — file exists; implementation must be rewritten against DB
+- **DELETED** — file must be removed; all callers migrated
 
 ---
 
-## Response Envelopes
+## Environment Variables
 
-**Single resource:**
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | No | `./invoicer.db` | Absolute or relative path to the SQLite file. In CI use `:memory:` or a temp path. In development, defaults to project root. |
+
+No other environment variables are added by this task.
+
+---
+
+## New Files
+
+### `lib/schema.ts` — NEW
+
+Drizzle table definitions. Single source of truth for all table shapes.
+
 ```typescript
-{ data: T }
+import {
+  sqliteTable, text, integer, real,
+  index, uniqueIndex,
+} from 'drizzle-orm/sqlite-core'
+import type { LineItem } from '@/lib/models'
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+export const users = sqliteTable('users', {
+  id:           text('id').primaryKey(),
+  email:        text('email').notNull().unique(),
+  name:         text('name').notNull(),
+  passwordHash: text('password_hash').notNull(),
+  createdAt:    text('created_at').notNull(),
+  updatedAt:    text('updated_at').notNull(),
+})
+
+// ── Business Profiles ─────────────────────────────────────────────────────────
+// Address is flattened to columns (no JSON object).
+export const businessProfiles = sqliteTable('business_profiles', {
+  id:                      text('id').primaryKey(),
+  userId:                  text('user_id').notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  businessName:            text('business_name').notNull(),
+  logoUrl:                 text('logo_url'),
+  addressLine1:            text('address_line1'),
+  addressLine2:            text('address_line2'),
+  addressCity:             text('address_city'),
+  addressState:            text('address_state'),
+  addressPostalCode:       text('address_postal_code'),
+  addressCountry:          text('address_country'),
+  phone:                   text('phone'),
+  email:                   text('email'),
+  website:                 text('website'),
+  taxId:                   text('tax_id'),
+  defaultCurrency:         text('default_currency').notNull().default('USD'),
+  defaultPaymentTermsDays: integer('default_payment_terms_days').notNull().default(30),
+  defaultTaxRate:          real('default_tax_rate'),
+  defaultNotes:            text('default_notes'),
+  defaultTerms:            text('default_terms'),
+  invoicePrefix:           text('invoice_prefix').notNull().default('INV'),
+  nextInvoiceNumber:       integer('next_invoice_number').notNull().default(1),
+  createdAt:               text('created_at').notNull(),
+  updatedAt:               text('updated_at').notNull(),
+}, (t) => [
+  uniqueIndex('bp_user_id_idx').on(t.userId),
+])
+
+// ── Clients ───────────────────────────────────────────────────────────────────
+// Address is flattened to columns (no JSON object).
+export const clients = sqliteTable('clients', {
+  id:               text('id').primaryKey(),
+  userId:           text('user_id').notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  name:             text('name').notNull(),
+  email:            text('email'),
+  phone:            text('phone'),
+  company:          text('company'),
+  addressLine1:     text('address_line1'),
+  addressLine2:     text('address_line2'),
+  addressCity:      text('address_city'),
+  addressState:     text('address_state'),
+  addressPostalCode:text('address_postal_code'),
+  addressCountry:   text('address_country'),
+  currency:         text('currency').notNull().default('USD'),
+  notes:            text('notes'),
+  createdAt:        text('created_at').notNull(),
+  updatedAt:        text('updated_at').notNull(),
+}, (t) => [
+  index('clients_user_id_idx').on(t.userId),
+])
+
+// ── Invoices ──────────────────────────────────────────────────────────────────
+// lineItems stored as JSON TEXT. All money values are integer cents.
+export const invoices = sqliteTable('invoices', {
+  id:             text('id').primaryKey(),
+  userId:         text('user_id').notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  clientId:       text('client_id').notNull()
+    .references(() => clients.id),
+  invoiceNumber:  text('invoice_number').notNull(),
+  status:         text('status').notNull(), // 'draft'|'sent'|'partial'|'paid'|'void'
+  issueDate:      text('issue_date').notNull(),    // YYYY-MM-DD
+  dueDate:        text('due_date').notNull(),      // YYYY-MM-DD
+  currency:       text('currency').notNull(),
+  lineItems:      text('line_items', { mode: 'json' })
+    .$type<LineItem[]>().notNull(),
+  subtotal:       integer('subtotal').notNull(),
+  taxRate:        real('tax_rate'),
+  taxAmount:      integer('tax_amount').notNull().default(0),
+  discountType:   text('discount_type'),           // 'percentage'|'fixed'|null
+  discountValue:  real('discount_value').notNull().default(0),
+  discountAmount: integer('discount_amount').notNull().default(0),
+  total:          integer('total').notNull(),
+  amountPaid:     integer('amount_paid').notNull().default(0),
+  amountDue:      integer('amount_due').notNull(),
+  notes:          text('notes'),
+  terms:          text('terms'),
+  sentAt:         text('sent_at'),
+  paidAt:         text('paid_at'),
+  createdAt:      text('created_at').notNull(),
+  updatedAt:      text('updated_at').notNull(),
+  deletedAt:      text('deleted_at'),
+}, (t) => [
+  index('invoices_user_id_idx').on(t.userId),
+  index('invoices_client_id_idx').on(t.clientId),
+  index('invoices_user_status_idx').on(t.userId, t.status),
+])
+
+// ── Payments ──────────────────────────────────────────────────────────────────
+export const payments = sqliteTable('payments', {
+  id:        text('id').primaryKey(),
+  invoiceId: text('invoice_id').notNull()
+    .references(() => invoices.id, { onDelete: 'cascade' }),
+  amount:    integer('amount').notNull(),
+  method:    text('method').notNull(), // 'cash'|'bank_transfer'|'check'|'credit_card'|'other'
+  reference: text('reference'),
+  notes:     text('notes'),
+  paidAt:    text('paid_at').notNull(),   // YYYY-MM-DD
+  createdAt: text('created_at').notNull(),
+}, (t) => [
+  index('payments_invoice_id_idx').on(t.invoiceId),
+])
+
+// ── Catalog Items ─────────────────────────────────────────────────────────────
+export const catalogItems = sqliteTable('catalog_items', {
+  id:          text('id').primaryKey(),
+  userId:      text('user_id').notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  name:        text('name').notNull(),
+  description: text('description'),
+  unitPrice:   integer('unit_price').notNull(),
+  unit:        text('unit'),
+  taxable:     integer('taxable', { mode: 'boolean' }).notNull().default(false),
+  createdAt:   text('created_at').notNull(),
+  updatedAt:   text('updated_at').notNull(),
+}, (t) => [
+  index('catalog_user_id_idx').on(t.userId),
+])
+
+// ── Access Tokens ─────────────────────────────────────────────────────────────
+export const accessTokens = sqliteTable('access_tokens', {
+  token:     text('token').primaryKey(),
+  userId:    text('user_id').notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: text('expires_at').notNull(),
+})
+
+// ── Refresh Tokens ────────────────────────────────────────────────────────────
+export const refreshTokens = sqliteTable('refresh_tokens', {
+  id:        text('id').primaryKey(),
+  userId:    text('user_id').notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: text('expires_at').notNull(),
+  usedAt:    text('used_at'),
+  createdAt: text('created_at').notNull(),
+})
+
+// ── Reset Tokens ──────────────────────────────────────────────────────────────
+export const resetTokens = sqliteTable('reset_tokens', {
+  id:        text('id').primaryKey(),
+  userId:    text('user_id').notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull(),
+  rawToken:  text('raw_token').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  usedAt:    text('used_at'),
+  createdAt: text('created_at').notNull(),
+})
 ```
 
-**Paginated list:**
+---
+
+### `lib/db.ts` — NEW
+
+Database singleton. Exports `db` (Drizzle instance) and `createDb` (factory for tests).
+
 ```typescript
-{ data: T[]; meta: { total: number; page: number; limit: number } }
+import Database from 'better-sqlite3'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
+import { join } from 'path'
+import * as schema from '@/lib/schema'
+
+export type Db = ReturnType<typeof drizzle<typeof schema>>
+
+export function createDb(sqliteInstance?: InstanceType<typeof Database>): Db {
+  const sqlite = sqliteInstance ?? new Database(process.env.DATABASE_URL ?? './invoicer.db')
+  sqlite.pragma('journal_mode = WAL')
+  sqlite.pragma('foreign_keys = ON')
+  const db = drizzle(sqlite, { schema })
+  migrate(db, { migrationsFolder: join(process.cwd(), 'drizzle') })
+  return db
+}
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __invoicer_db__: Db | undefined
+}
+
+export const db: Db =
+  globalThis.__invoicer_db__ ?? (globalThis.__invoicer_db__ = createDb())
 ```
 
-**Action with no returned resource (delete, logout):**
+---
+
+### `lib/validators.ts` — NEW
+
+All Zod input schemas. Imported by API route handlers.
+
+```typescript
+import { z } from 'zod'
+
+// ── Reusable building blocks ──────────────────────────────────────────────────
+
+const AddressSchema = z.object({
+  line1:      z.string().min(1).max(200).trim(),
+  line2:      z.string().max(200).trim().nullish(),
+  city:       z.string().min(1).max(100).trim(),
+  state:      z.string().max(100).trim().nullish(),
+  postalCode: z.string().max(20).trim().nullish(),
+  country:    z.string().length(2).toUpperCase(),
+}).nullish()
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD')
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+export const RegisterSchema = z.object({
+  name:     z.string().min(1).max(100).trim(),
+  email:    z.string().email().toLowerCase(),
+  password: z.string().min(8).max(100),
+})
+
+export const LoginSchema = z.object({
+  email:    z.string().email().toLowerCase(),
+  password: z.string().min(1),
+})
+
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email().toLowerCase(),
+})
+
+export const ResetPasswordSchema = z.object({
+  token:    z.string().min(1),
+  password: z.string().min(8).max(100),
+})
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+
+export const ProfilePatchSchema = z.object({
+  businessName:            z.string().min(1).max(200).trim().optional(),
+  email:                   z.string().email().toLowerCase().nullish(),
+  phone:                   z.string().max(50).trim().nullish(),
+  website:                 z.string().url().nullish(),
+  taxId:                   z.string().max(50).trim().nullish(),
+  defaultCurrency:         z.string().length(3).toUpperCase().optional(),
+  defaultPaymentTermsDays: z.number().int().min(0).max(365).optional(),
+  defaultTaxRate:          z.number().min(0).max(100).nullish(),
+  defaultNotes:            z.string().max(2000).nullish(),
+  defaultTerms:            z.string().max(2000).nullish(),
+  invoicePrefix:           z.string().regex(/^[A-Za-z0-9-]{1,10}$/).optional(),
+  address:                 AddressSchema,
+}).strict()
+
+// ── Clients ───────────────────────────────────────────────────────────────────
+
+export const ClientCreateSchema = z.object({
+  name:     z.string().min(1).max(200).trim(),
+  email:    z.string().email().toLowerCase().nullish(),
+  phone:    z.string().max(50).trim().nullish(),
+  company:  z.string().max(200).trim().nullish(),
+  address:  AddressSchema,
+  currency: z.string().length(3).toUpperCase().default('USD'),
+  notes:    z.string().max(2000).nullish(),
+})
+
+export const ClientPatchSchema = ClientCreateSchema.partial()
+
+// ── Invoice Line Items ────────────────────────────────────────────────────────
+
+const LineItemInputSchema = z.object({
+  id:          z.string().uuid().optional(),  // server generates UUID if omitted
+  description: z.string().min(1).max(500).trim(),
+  quantity:    z.number().positive().max(99999),
+  unitPrice:   z.number().int().min(0),       // integer cents
+  taxable:     z.boolean().default(false),
+})
+
+// ── Invoices ──────────────────────────────────────────────────────────────────
+
+export const InvoiceCreateSchema = z.object({
+  clientId:      z.string().uuid(),
+  issueDate:     isoDate,
+  dueDate:       isoDate,
+  lineItems:     z.array(LineItemInputSchema).min(1).max(100),
+  taxRate:       z.number().min(0).max(100).nullish(),
+  discountType:  z.enum(['percentage', 'fixed']).nullish(),
+  discountValue: z.number().min(0).default(0),
+  currency:      z.string().length(3).toUpperCase().optional(),
+  notes:         z.string().max(2000).nullish(),
+  terms:         z.string().max(2000).nullish(),
+  invoiceNumber: z.string().max(50).optional(), // override auto-generated number
+})
+
+export const InvoicePatchSchema = InvoiceCreateSchema.partial()
+
+export const InvoiceSendSchema = z.object({
+  recipientEmail: z.string().email().toLowerCase(),
+  message:        z.string().max(2000).optional(),
+})
+
+// ── Payments ──────────────────────────────────────────────────────────────────
+
+export const PaymentCreateSchema = z.object({
+  amount:    z.number().int().positive(),
+  method:    z.enum(['cash', 'bank_transfer', 'check', 'credit_card', 'other']),
+  paidAt:    isoDate.optional(),    // defaults to today if omitted
+  reference: z.string().max(200).trim().nullish(),
+  notes:     z.string().max(1000).nullish(),
+})
+
+// ── Catalog ───────────────────────────────────────────────────────────────────
+
+export const CatalogCreateSchema = z.object({
+  name:        z.string().min(1).max(200).trim(),
+  unitPrice:   z.number().int().min(0),
+  description: z.string().max(500).nullish(),
+  unit:        z.string().max(20).trim().nullish(),
+  taxable:     z.boolean().default(false),
+})
+
+export const CatalogPatchSchema = CatalogCreateSchema.partial()
+```
+
+---
+
+### `drizzle.config.ts` — NEW
+
+```typescript
+import { defineConfig } from 'drizzle-kit'
+
+export default defineConfig({
+  dialect:     'sqlite',
+  schema:      './lib/schema.ts',
+  out:         './drizzle',
+  dbCredentials: {
+    url: process.env.DATABASE_URL ?? './invoicer.db',
+  },
+})
+```
+
+---
+
+### `vitest.config.ts` — NEW
+
+```typescript
+import { defineConfig } from 'vitest/config'
+import { resolve } from 'path'
+
+export default defineConfig({
+  test: {
+    environment: 'node',
+    globals:     true,
+    include:     ['tests/**/*.test.ts'],
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, '.'),
+    },
+  },
+})
+```
+
+---
+
+## Modified Files
+
+### `lib/store.ts` — DELETED
+
+Remove the file. Before deleting, ensure every import of `@/lib/store` has been replaced.
+
+**Callers to migrate** (grep `from.*lib/store` in the project):
+- `lib/auth.ts`
+- `lib/domain.ts`
+- `app/api/auth/register/route.ts`
+- `app/api/auth/login/route.ts`
+- `app/api/auth/logout/route.ts`
+- `app/api/auth/refresh/route.ts`
+- `app/api/auth/forgot-password/route.ts`
+- `app/api/auth/reset-password/route.ts`
+- `app/api/invoices/route.ts`
+- `app/api/invoices/next-number/route.ts`
+- `app/api/invoices/[id]/route.ts`
+- `app/api/invoices/[id]/send/route.ts`
+- `app/api/invoices/[id]/void/route.ts`
+- `app/api/invoices/[id]/duplicate/route.ts`
+- `app/api/invoices/[id]/pdf/route.ts`
+- `app/api/invoices/[id]/payments/route.ts`
+- `app/api/invoices/[id]/payments/[paymentId]/route.ts`
+- `app/api/clients/route.ts`
+- `app/api/clients/[id]/route.ts`
+- `app/api/clients/[id]/invoices/route.ts`
+- `app/api/catalog/route.ts`
+- `app/api/catalog/[id]/route.ts`
+- `app/api/profile/route.ts`
+- `app/api/profile/logo/route.ts`
+- `app/api/dashboard/stats/route.ts`
+
+---
+
+### `lib/auth.ts` — MODIFIED
+
+Replace all `getStore()` calls with Drizzle queries against `lib/db.ts`.
+
+**`issueSession(userId: string): Promise<{ accessToken: string; refreshToken: string }>`**
+- Generates `accessToken` via `randomToken('at_')` and `refreshToken` via `randomToken('rt_')`
+- Inserts into `access_tokens`: `{ token, userId, expiresAt: nowIso() + 15 min }`
+- Inserts into `refresh_tokens`: `{ id: uuid(), userId, tokenHash: sha256(refreshToken), expiresAt: nowIso() + 7 days, createdAt: nowIso() }`
+- Returns the raw (un-hashed) tokens
+
+**`requireAuth(req: NextRequest): { userId: string }`**
+- Reads `invoicer_access` cookie
+- Queries `SELECT * FROM access_tokens WHERE token = ? AND expires_at > ?`
+- Throws `errorResponse('UNAUTHORIZED', ...)` with HTTP 401 if not found
+
+**`rotateRefreshToken(rawToken: string): { accessToken: string; refreshToken: string }`**
+- Computes `hash = sha256(rawToken)`
+- Queries `SELECT * FROM refresh_tokens WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?`
+- Throws 401 if not found
+- Updates `used_at = nowIso()` on the found row
+- Calls `issueSession(userId)` to generate new token pair
+- Returns new tokens
+
+---
+
+### `lib/api.ts` — MODIFIED (addition only)
+
+Add the `parseBody` helper. Do not modify existing exports.
+
+```typescript
+import type { ZodSchema, ZodError } from 'zod'
+
+/**
+ * Parse and validate `body` against `schema`.
+ * On failure, returns a NextResponse with HTTP 400 and VALIDATION_ERROR code.
+ * On success, returns the typed parsed data.
+ */
+export function parseBody<T>(
+  schema: ZodSchema<T>,
+  body: unknown,
+): { ok: true; data: T } | { ok: false; response: NextResponse } {
+  const result = schema.safeParse(body)
+  if (!result.success) {
+    return {
+      ok: false,
+      response: errorResponse(
+        'VALIDATION_ERROR',
+        'Invalid input.',
+        400,
+        { details: (result.error as ZodError).flatten().fieldErrors },
+      ),
+    }
+  }
+  return { ok: true, data: result.data }
+}
+```
+
+---
+
+### `lib/domain.ts` — MODIFIED
+
+Replace all `store.*` array reads/writes with Drizzle queries using `db` from `lib/db.ts`.
+
+Key function signatures are **unchanged**. Only the implementation bodies change.
+
+Functions in `lib/domain.ts` and their new data source:
+
+| Function | Old source | New source |
+|---|---|---|
+| `parseClientCreate(body)` | validation only | validation via `ClientCreateSchema` (Zod) |
+| `applyProfilePatch(profile, patch)` | pure merge | pure merge (unchanged) |
+| `getClientOrFail(userId, clientId)` | `store.clients.find(...)` | `db.select().from(clients).where(and(eq(clients.id, clientId), eq(clients.userId, userId)))` |
+| `getInvoiceOrFail(userId, id)` | `store.invoices.find(...)` | `db.select().from(invoices).where(...)` |
+| `getProfileOrFail(userId)` | `store.businessProfiles.find(...)` | `db.select().from(businessProfiles).where(eq(businessProfiles.userId, userId))` |
+
+---
+
+### `lib/invoices.ts` — MODIFIED (minimal)
+
+`computeTotals()`, `withComputedStatus()`, and `toSummary()` are **pure functions and remain
+unchanged**. Remove any direct `store` imports if present. Recalculate and persist totals
+within the route handler after calling `computeTotals()`.
+
+---
+
+## API Route Specifications
+
+All routes marked **MODIFIED** — same method, path, request/response shapes as documented in
+`PROJECT_CONTEXT.md §Existing Routes and API Endpoints`. Only the implementation changes
+(store → DB). Changes from the current implementation are noted below.
+
+---
+
+### Auth Routes
+
+#### `POST /api/auth/register` — MODIFIED
+
+**File**: `app/api/auth/register/route.ts`
+
+**Request body** (validated with `RegisterSchema`):
+```typescript
+{
+  name:     string  // min 1, max 100, trimmed
+  email:    string  // valid email, lowercased
+  password: string  // min 8, max 100
+}
+```
+
+**Success response** `201`:
+```typescript
+{ data: { id: string; email: string; name: string } }
+```
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Schema parse failure |
+| 409 | `EMAIL_TAKEN` | `users.email` unique constraint violation |
+
+**Implementation notes**:
+1. Call `parseBody(RegisterSchema, body)` — return 400 on failure
+2. Check `SELECT id FROM users WHERE email = ?` — return 409 if found
+3. Hash password: `crypto.scryptSync(password, 'invoicer-salt', 64).toString('hex')`
+4. Insert `users` row (id = `uuid()`, createdAt/updatedAt = `nowIso()`)
+5. Insert `business_profiles` row with `businessName = user.name`, all defaults
+6. Call `issueSession(userId)`, set cookies, return 201
+
+---
+
+#### `POST /api/auth/login` — MODIFIED
+
+**File**: `app/api/auth/login/route.ts`
+
+**Request body** (validated with `LoginSchema`):
+```typescript
+{ email: string; password: string }
+```
+
+**Success response** `200`:
+```typescript
+{ data: { id: string; email: string; name: string } }
+```
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Schema parse failure |
+| 401 | `INVALID_CREDENTIALS` | User not found or password mismatch |
+
+---
+
+#### `POST /api/auth/logout` — MODIFIED
+
+**File**: `app/api/auth/logout/route.ts`
+
+**Request body**: none
+
+**Success response** `200`:
 ```typescript
 { success: true }
 ```
 
-**Error (all non-2xx responses):**
+**Implementation notes**:
+- Read `invoicer_refresh` cookie; find and delete `refresh_tokens` row where `tokenHash = sha256(cookie)`
+- Delete `access_tokens` row where `token = invoicer_access cookie`
+- Clear both cookies regardless of whether rows were found
+
+---
+
+#### `POST /api/auth/refresh` — MODIFIED
+
+**File**: `app/api/auth/refresh/route.ts`
+
+**Request body**: none (reads `invoicer_refresh` cookie)
+
+**Success response** `200`:
+```typescript
+{ success: true }
+```
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 401 | `UNAUTHORIZED` | Token not found, already used, or expired |
+
+---
+
+#### `POST /api/auth/forgot-password` — MODIFIED
+
+**File**: `app/api/auth/forgot-password/route.ts`
+
+**Request body** (validated with `ForgotPasswordSchema`):
+```typescript
+{ email: string }
+```
+
+**Success response** `200` (always, even if email not found):
+```typescript
+{ success: true }
+```
+
+**Implementation notes**:
+- Look up user by email; if not found, return `{ success: true }` silently
+- Generate `rawToken = randomToken('rst_')`, `tokenHash = sha256(rawToken)`
+- Insert `reset_tokens` row with `expiresAt = nowIso() + 1 hour`
+- Return `{ success: true }` — no email is sent (existing known limitation)
+
+---
+
+#### `POST /api/auth/reset-password` — MODIFIED
+
+**File**: `app/api/auth/reset-password/route.ts`
+
+**Request body** (validated with `ResetPasswordSchema`):
+```typescript
+{ token: string; password: string }
+```
+
+**Success response** `200`:
+```typescript
+{ success: true }
+```
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Schema parse failure |
+| 400 | `INVALID_TOKEN` | Token not found, used, or expired |
+
+---
+
+### Invoice Routes
+
+#### `GET /api/invoices` — MODIFIED
+
+**File**: `app/api/invoices/route.ts`
+
+**Query parameters**:
+| Param | Type | Description |
+|---|---|---|
+| `page` | number (default 1) | Page number |
+| `limit` | number (default 20, max 100) | Items per page |
+| `status` | string (optional) | Filter by stored status. `overdue` is a virtual filter: `status IN ('sent','partial') AND due_date < today` |
+| `search` | string (optional) | Case-insensitive match on `invoice_number` OR client `name` (JOIN required) |
+| `clientId` | UUID (optional) | Filter by `client_id` |
+| `sortBy` | `createdAt`\|`dueDate`\|`total`\|`invoiceNumber` (default `createdAt`) | Sort column |
+| `sortDir` | `asc`\|`desc` (default `desc`) | Sort direction |
+
+**Success response** `200`:
 ```typescript
 {
-  error: {
-    code: string;       // SCREAMING_SNAKE_CASE machine-readable identifier
-    message: string;    // human-readable description
-    field?: string;     // present on validation errors referencing a specific field
-    details?: unknown;  // optional additional context
+  data: InvoiceSummary[]   // withComputedStatus() applied to each
+  meta: { total: number; page: number; limit: number }
+}
+```
+
+**Implementation notes**:
+- Base query: `invoices JOIN clients ON invoices.client_id = clients.id`
+  WHERE `invoices.user_id = ? AND invoices.deleted_at IS NULL`
+- `overdue` filter: add `AND invoices.status IN ('sent','partial') AND invoices.due_date < ?` (today)
+- `search` filter: `LIKE '%...%'` on `invoices.invoice_number` OR `clients.name`
+- Apply `withComputedStatus()` from `lib/invoices.ts` on each result before returning
+
+---
+
+#### `POST /api/invoices` — MODIFIED
+
+**File**: `app/api/invoices/route.ts`
+
+**Request body** (validated with `InvoiceCreateSchema`):
+```typescript
+{
+  clientId:      string   // UUID, must belong to authenticated user
+  issueDate:     string   // YYYY-MM-DD
+  dueDate:       string   // YYYY-MM-DD
+  lineItems:     Array<{
+    id?:         string   // UUID, generated if omitted
+    description: string
+    quantity:    number
+    unitPrice:   number   // integer cents
+    taxable:     boolean
+  }>
+  taxRate?:      number | null
+  discountType?: 'percentage' | 'fixed' | null
+  discountValue?: number        // default 0
+  currency?:     string         // ISO 4217, defaults to profile.defaultCurrency
+  notes?:        string | null
+  terms?:        string | null
+  invoiceNumber?: string        // override; server auto-generates if omitted
+}
+```
+
+**Success response** `201`:
+```typescript
+{ data: StoredInvoice }
+```
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Schema failure |
+| 404 | `NOT_FOUND` | `clientId` does not belong to user |
+| 409 | `DUPLICATE_INVOICE_NUMBER` | Provided `invoiceNumber` already exists (non-deleted) for user |
+
+**Implementation notes**:
+- Retrieve profile inside a **transaction**
+- Atomically: `UPDATE business_profiles SET next_invoice_number = next_invoice_number + 1 WHERE user_id = ? RETURNING next_invoice_number` to get the next number
+- Format `invoiceNumber` as `${prefix}-${String(nextNumber).padStart(4, '0')}` if not provided
+- Assign UUIDs to any `lineItems` missing an `id`
+- Call `computeTotals()` from `lib/invoices.ts` to get subtotal, taxAmount, discountAmount, total, amountDue
+- Insert invoice row; return 201
+
+---
+
+#### `GET /api/invoices/next-number` — MODIFIED
+
+**File**: `app/api/invoices/next-number/route.ts`
+
+**Success response** `200`:
+```typescript
+{ data: { invoiceNumber: string } }
+```
+
+**Implementation**: Read `nextInvoiceNumber` + `invoicePrefix` from `business_profiles` WHERE
+`userId = ?`. Format as `${prefix}-${String(nextNumber).padStart(4, '0')}`. Do **not** increment.
+
+---
+
+#### `GET /api/invoices/[id]` — MODIFIED
+
+**File**: `app/api/invoices/[id]/route.ts`
+
+**Success response** `200`:
+```typescript
+{ data: StoredInvoice }  // withComputedStatus() applied
+```
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 404 | `NOT_FOUND` | Invoice not found, wrong user, or `deletedAt IS NOT NULL` |
+
+---
+
+#### `PATCH /api/invoices/[id]` — MODIFIED
+
+**File**: `app/api/invoices/[id]/route.ts`
+
+**Request body** (validated with `InvoicePatchSchema`):
+Any subset of `InvoiceCreateSchema` fields.
+
+**Success response** `200`:
+```typescript
+{ data: StoredInvoice }
+```
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Schema failure |
+| 403 | `FORBIDDEN` | Invoice is not in `draft` status |
+| 404 | `NOT_FOUND` | Invoice not found |
+
+**Implementation notes**:
+- Recompute totals if `lineItems`, `taxRate`, `discountType`, or `discountValue` are in the patch
+- Update `updatedAt = nowIso()`
+
+---
+
+#### `DELETE /api/invoices/[id]` — MODIFIED
+
+**Success response** `200`: `{ success: true }`
+
+Sets `deleted_at = nowIso()` on a `draft` invoice. Returns 403 if not draft.
+
+---
+
+#### `POST /api/invoices/[id]/send` — MODIFIED
+
+**File**: `app/api/invoices/[id]/send/route.ts`
+
+**Request body** (validated with `InvoiceSendSchema`):
+```typescript
+{ recipientEmail: string; message?: string }
+```
+
+**Success response** `200`: `{ success: true }`
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Schema failure |
+| 400 | `INVALID_STATUS` | Invoice is not `draft` |
+| 404 | `NOT_FOUND` | Invoice not found |
+
+**Implementation**: Set `status = 'sent'`, `sentAt = nowIso()`, `updatedAt = nowIso()`.
+No email is sent (existing known limitation).
+
+---
+
+#### `POST /api/invoices/[id]/void` — MODIFIED
+
+**Success response** `200`: `{ success: true }`
+
+Sets `status = 'void'`. Returns 400 with `INVALID_STATUS` if current status is `paid` or `void`.
+
+---
+
+#### `POST /api/invoices/[id]/duplicate` — MODIFIED
+
+**Success response** `201`:
+```typescript
+{ data: StoredInvoice }  // the new draft invoice
+```
+
+**Implementation notes**:
+- Reads source invoice; verifies ownership
+- Atomically increments `nextInvoiceNumber` (same transaction pattern as POST /api/invoices)
+- Inserts new invoice row: new UUID, new invoice number, `status = 'draft'`, `issueDate = todayUtc()`,
+  `dueDate = addDaysUtc(today, profile.defaultPaymentTermsDays)`, `amountPaid = 0`, `sentAt = null`, `paidAt = null`
+- Returns new invoice
+
+---
+
+#### `GET /api/invoices/[id]/pdf` — MODIFIED
+
+**File**: `app/api/invoices/[id]/pdf/route.ts`
+
+Reads invoice + client + business profile from SQLite. Passes data to `generatePdf()` in
+`lib/pdf.ts` (unchanged). Returns `application/pdf` response.
+
+No changes to PDF generation logic.
+
+---
+
+#### `GET /api/invoices/[id]/payments` — MODIFIED
+
+**File**: `app/api/invoices/[id]/payments/route.ts`
+
+**Success response** `200`:
+```typescript
+{ data: Payment[] }
+```
+
+Query: `SELECT * FROM payments WHERE invoice_id = ? ORDER BY paid_at DESC, created_at DESC`
+
+---
+
+#### `POST /api/invoices/[id]/payments` — MODIFIED
+
+**File**: `app/api/invoices/[id]/payments/route.ts`
+
+**Request body** (validated with `PaymentCreateSchema`):
+```typescript
+{
+  amount:     number   // integer cents, > 0, <= invoice.amountDue
+  method:     'cash' | 'bank_transfer' | 'check' | 'credit_card' | 'other'
+  paidAt?:    string   // YYYY-MM-DD, defaults to todayUtc() if omitted
+  reference?: string | null
+  notes?:     string | null
+}
+```
+
+**Success response** `201`:
+```typescript
+{ data: { payment: Payment; invoice: StoredInvoice } }
+```
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Schema failure |
+| 400 | `PAYMENT_EXCEEDS_DUE` | `amount > invoice.amountDue` |
+| 404 | `NOT_FOUND` | Invoice not found |
+
+**Implementation notes** (all in a single SQLite transaction):
+1. Lock and read invoice row
+2. Validate `amount <= amountDue`
+3. Insert payment row
+4. Recalculate: `newAmountPaid = invoice.amountPaid + amount`
+5. Determine new status:
+   - `newAmountPaid >= invoice.total` → `paid`; set `paidAt = payment.paidAt`
+   - `newAmountPaid > 0` → `partial`
+   - (status cannot drop below `sent` via payment)
+6. Update invoice: `amount_paid`, `amount_due`, `status`, `paid_at`, `updated_at`
+
+---
+
+#### `DELETE /api/invoices/[id]/payments/[paymentId]` — MODIFIED
+
+**File**: `app/api/invoices/[id]/payments/[paymentId]/route.ts`
+
+**Success response** `200`: `{ success: true }`
+
+**Implementation notes** (single transaction):
+1. Delete payment row (verify it belongs to the invoice and invoice belongs to user)
+2. Recalculate `amountPaid = SUM(amount) FROM payments WHERE invoice_id = ?`
+3. Determine new status: `paid` → `partial` or `sent`; `partial` → `partial` or `sent`; clears `paidAt` if no longer paid
+4. Update invoice row
+
+---
+
+### Client Routes
+
+#### `GET /api/clients` — MODIFIED
+
+**File**: `app/api/clients/route.ts`
+
+**Query parameters**: `page`, `limit`, `search` (matches `name`, `company`, `email`)
+
+**Success response** `200`:
+```typescript
+{ data: Client[]; meta: { total: number; page: number; limit: number } }
+```
+
+---
+
+#### `POST /api/clients` — MODIFIED
+
+**File**: `app/api/clients/route.ts`
+
+**Request body** (validated with `ClientCreateSchema`):
+```typescript
+{
+  name:     string
+  email?:   string | null
+  phone?:   string | null
+  company?: string | null
+  address?: Address | null
+  currency?: string         // default 'USD'
+  notes?:   string | null
+}
+```
+
+**Address object** (if provided) is flattened into individual columns before INSERT.
+
+**Success response** `201`:
+```typescript
+{ data: Client }
+```
+
+**Column mapping for address**:
+- `address.line1` → `address_line1`
+- `address.line2` → `address_line2`
+- `address.city` → `address_city`
+- `address.state` → `address_state`
+- `address.postalCode` → `address_postal_code`
+- `address.country` → `address_country`
+
+**Reconstituting Address on read**: When returning a client, if `addressLine1` is non-null,
+reconstruct the `address` object from the flat columns. Otherwise `address = null`.
+
+---
+
+#### `GET /api/clients/[id]` — MODIFIED
+
+**File**: `app/api/clients/[id]/route.ts`
+
+**Success response** `200`:
+```typescript
+{
+  data: Client & {
+    stats: {
+      totalInvoiced:   number  // SUM(total) cents — non-deleted, non-void invoices
+      totalPaid:       number  // SUM(amount_paid) cents
+      totalOutstanding:number  // SUM(amount_due) cents — status IN ('sent','partial','overdue')
+      lastInvoiceDate: string | null  // max(issue_date) — non-deleted invoices
+      invoiceCount:    number
+    }
+  }
+}
+```
+
+**Stats query**: Two aggregate queries (or one with multiple aggregations):
+```sql
+SELECT
+  COALESCE(SUM(total), 0)       AS total_invoiced,
+  COALESCE(SUM(amount_paid), 0) AS total_paid,
+  COALESCE(SUM(amount_due), 0)  AS total_outstanding,
+  MAX(issue_date)               AS last_invoice_date,
+  COUNT(*)                      AS invoice_count
+FROM invoices
+WHERE client_id = ?
+  AND user_id = ?
+  AND deleted_at IS NULL
+  AND status != 'void'
+```
+
+---
+
+#### `PATCH /api/clients/[id]` — MODIFIED
+
+**Request body** (validated with `ClientPatchSchema`)
+
+**Success response** `200`: `{ data: Client }`
+
+**Implementation**: Flatten any `address` object to columns before UPDATE. Reconstruct on read.
+
+---
+
+#### `DELETE /api/clients/[id]` — MODIFIED
+
+**Success response** `200`: `{ success: true }`
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 409 | `CLIENT_HAS_INVOICES` | Non-void, non-deleted invoices exist for this client |
+
+---
+
+#### `GET /api/clients/[id]/invoices` — MODIFIED
+
+**File**: `app/api/clients/[id]/invoices/route.ts`
+
+**Query parameters**: `page`, `limit`, `status`
+
+**Success response** `200`:
+```typescript
+{ data: InvoiceSummary[]; meta: { total: number; page: number; limit: number } }
+```
+
+---
+
+### Catalog Routes
+
+#### `GET /api/catalog` — MODIFIED
+
+**File**: `app/api/catalog/route.ts`
+
+**Query parameters**: `search` (matches `name`, `description`, case-insensitive)
+
+**Success response** `200`:
+```typescript
+{ data: CatalogItem[] }
+```
+
+Ordered by `name ASC`.
+
+---
+
+#### `POST /api/catalog` — MODIFIED
+
+**Request body** (validated with `CatalogCreateSchema`):
+```typescript
+{
+  name:         string    // min 1, max 200
+  unitPrice:    number    // integer cents
+  description?: string | null
+  unit?:        string | null
+  taxable?:     boolean   // default false
+}
+```
+
+**Success response** `201`: `{ data: CatalogItem }`
+
+**Error responses**:
+| HTTP | Code | Condition |
+|---|---|---|
+| 400 | `CATALOG_LIMIT_EXCEEDED` | `SELECT COUNT(*) FROM catalog_items WHERE user_id = ?` >= 500 |
+
+---
+
+#### `PATCH /api/catalog/[id]` — MODIFIED
+
+**Request body** (validated with `CatalogPatchSchema`)
+
+**Success response** `200`: `{ data: CatalogItem }`
+
+---
+
+#### `DELETE /api/catalog/[id]` — MODIFIED
+
+**Success response** `200`: `{ success: true }`
+
+---
+
+### Profile Routes
+
+#### `GET /api/profile` — MODIFIED
+
+**File**: `app/api/profile/route.ts`
+
+**Success response** `200`: `{ data: BusinessProfile }`
+
+**Implementation**: Query `business_profiles` WHERE `user_id = ?`. Reconstruct nested `address`
+object from flat columns (same pattern as clients).
+
+---
+
+#### `PATCH /api/profile` — MODIFIED
+
+**Request body** (validated with `ProfilePatchSchema`):
+Any subset of profile fields. `address` is an optional nested object.
+
+**Success response** `200`: `{ data: BusinessProfile }`
+
+**Implementation**: Flatten `address` to columns before UPDATE. Set `updatedAt = nowIso()`.
+
+---
+
+#### `POST /api/profile/logo` — MODIFIED
+
+Reads multipart body, validates MIME + size, generates stub CDN URL, updates
+`business_profiles.logo_url`. File bytes are discarded (existing known limitation).
+
+**Success response** `200`: `{ data: BusinessProfile }`
+
+---
+
+#### `DELETE /api/profile/logo` — MODIFIED
+
+Sets `business_profiles.logo_url = NULL`.
+
+**Success response** `200`: `{ data: BusinessProfile }`
+
+---
+
+### Dashboard Routes
+
+#### `GET /api/dashboard/stats` — MODIFIED
+
+**File**: `app/api/dashboard/stats/route.ts`
+
+**Success response** `200`:
+```typescript
+{
+  data: {
+    totalOutstanding: number   // SUM(amount_due) cents, non-deleted, status IN ('sent','partial'), defaultCurrency
+    totalOverdue:     number   // same + due_date < today
+    paidThisMonth:   number   // SUM(payments.amount) where paid_at in current month, joined to defaultCurrency invoices
+    recentInvoices:  InvoiceSummary[]   // 5 most recent by created_at DESC
+    overdueInvoices: InvoiceSummary[]   // all overdue, ordered dueDate ASC
+  }
+}
+```
+
+**Implementation queries**:
+
+```sql
+-- totalOutstanding
+SELECT COALESCE(SUM(amount_due), 0)
+FROM invoices
+WHERE user_id = ? AND deleted_at IS NULL
+  AND status IN ('sent','partial')
+  AND currency = ?  -- profile.defaultCurrency
+
+-- totalOverdue
+SELECT COALESCE(SUM(amount_due), 0)
+FROM invoices
+WHERE user_id = ? AND deleted_at IS NULL
+  AND status IN ('sent','partial')
+  AND due_date < ?  -- today
+  AND currency = ?
+
+-- paidThisMonth
+SELECT COALESCE(SUM(p.amount), 0)
+FROM payments p
+JOIN invoices i ON p.invoice_id = i.id
+WHERE i.user_id = ?
+  AND i.currency = ?
+  AND p.paid_at >= ?  -- first day of current month (YYYY-MM-01)
+  AND p.paid_at <= ?  -- last day of current month
+
+-- recentInvoices (LIMIT 5)
+SELECT i.*, c.name AS client_name
+FROM invoices i
+JOIN clients c ON i.client_id = c.id
+WHERE i.user_id = ? AND i.deleted_at IS NULL
+ORDER BY i.created_at DESC
+LIMIT 5
+
+-- overdueInvoices
+SELECT i.*, c.name AS client_name
+FROM invoices i
+JOIN clients c ON i.client_id = c.id
+WHERE i.user_id = ? AND i.deleted_at IS NULL
+  AND i.status IN ('sent','partial')
+  AND i.due_date < ?  -- today
+ORDER BY i.due_date ASC
+```
+
+---
+
+## Zod Schema Reference
+
+### Type Inference
+
+Use Drizzle's `$inferSelect` and `$inferInsert` for table row types:
+
+```typescript
+import { users, invoices, clients } from '@/lib/schema'
+type UserRow     = typeof users.$inferSelect
+type InvoiceRow  = typeof invoices.$inferSelect
+type ClientRow   = typeof clients.$inferSelect
+```
+
+Use Zod's `z.infer` for validated input types:
+
+```typescript
+import type { z } from 'zod'
+import { InvoiceCreateSchema } from '@/lib/validators'
+type InvoiceCreateInput = z.infer<typeof InvoiceCreateSchema>
+```
+
+---
+
+## UI Component → Endpoint Mapping
+
+Unchanged from `PROJECT_CONTEXT.md §Existing Routes`. All endpoints retain the same paths and
+response shapes. No frontend changes are required.
+
+---
+
+## npm Scripts Required
+
+Add to `package.json`:
+
+```json
+{
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate":  "drizzle-kit migrate",
+    "db:studio":   "drizzle-kit studio",
+    "test":        "vitest run",
+    "test:watch":  "vitest"
   }
 }
 ```
 
 ---
 
-## Data Models
-
-```typescript
-// ─────────────────────────────────────────────────────────────
-// Primitive aliases
-// ─────────────────────────────────────────────────────────────
-
-/** UUID v4 string */
-type UUID = string;
-
-/** ISO 8601 date-time with timezone, e.g. "2025-03-06T14:30:00.000Z" */
-type ISODateTime = string;
-
-/** ISO 8601 date (no time component), e.g. "2025-03-06" */
-type ISODate = string;
-
-/** ISO 4217 currency code, e.g. "USD" */
-type CurrencyCode = string;
-
-/**
- * Integer representing monetary value in the currency's smallest unit.
- * For USD: cents (e.g. $12.99 → 1299).
- * ALL monetary fields in request and response bodies use this type.
- * Non-integer values are rejected with HTTP 400.
- */
-type Cents = number;
-
-// ─────────────────────────────────────────────────────────────
-// Shared sub-objects
-// ─────────────────────────────────────────────────────────────
-
-interface Address {
-  line1: string;
-  line2: string | null;
-  city: string;
-  state: string | null;       // state/province/region
-  postalCode: string | null;
-  country: string;            // ISO 3166-1 alpha-2, e.g. "US"
-}
-
-// ─────────────────────────────────────────────────────────────
-// User
-// ─────────────────────────────────────────────────────────────
-
-/** Returned from auth endpoints. Never includes passwordHash. */
-interface User {
-  id: UUID;
-  email: string;
-  name: string;
-  createdAt: ISODateTime;
-  updatedAt: ISODateTime;
-}
-
-// ─────────────────────────────────────────────────────────────
-// Business Profile
-// ─────────────────────────────────────────────────────────────
-
-interface BusinessProfile {
-  id: UUID;
-  userId: UUID;
-  businessName: string;
-  logoUrl: string | null;             // absolute URL to stored image
-  address: Address | null;
-  phone: string | null;
-  email: string | null;               // business contact email (separate from login email)
-  website: string | null;
-  taxId: string | null;
-  defaultCurrency: CurrencyCode;
-  defaultPaymentTermsDays: number;    // default: 30
-  defaultTaxRate: number | null;      // percentage, e.g. 8.5 means 8.5%
-  defaultNotes: string | null;        // pre-filled on new invoices
-  defaultTerms: string | null;        // pre-filled on new invoices
-  invoicePrefix: string;              // default: "INV"
-  nextInvoiceNumber: number;          // auto-increments on each invoice creation; minimum 1
-  createdAt: ISODateTime;
-  updatedAt: ISODateTime;
-}
-
-// ─────────────────────────────────────────────────────────────
-// Client
-// ─────────────────────────────────────────────────────────────
-
-interface Client {
-  id: UUID;
-  userId: UUID;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  company: string | null;
-  address: Address | null;
-  currency: CurrencyCode;    // defaults to businessProfile.defaultCurrency
-  notes: string | null;
-  createdAt: ISODateTime;
-  updatedAt: ISODateTime;
-}
-
-/** Returned only from GET /api/clients/:id — includes computed aggregates */
-interface ClientWithStats extends Client {
-  totalInvoiced: Cents;         // sum of all non-void invoice totals
-  totalPaid: Cents;             // sum of all payment amounts on non-void invoices
-  totalOutstanding: Cents;      // totalInvoiced − totalPaid
-  lastInvoiceDate: ISODate | null;
-}
-
-// ─────────────────────────────────────────────────────────────
-// Invoice
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Stored values: "draft" | "sent" | "partial" | "paid" | "void"
- * "overdue" is never stored; it is computed on read:
- *   if stored status is "sent" or "partial" AND dueDate < today (UTC) → return "overdue"
- */
-type InvoiceStatus = "draft" | "sent" | "partial" | "paid" | "overdue" | "void";
-
-type DiscountType = "percentage" | "fixed";
-
-interface LineItem {
-  id: UUID;
-  description: string;
-  quantity: number;       // positive number; supports up to 4 decimal places
-  unitPrice: Cents;       // per unit, integer cents
-  amount: Cents;          // server-computed: Math.round(quantity × unitPrice)
-  taxable: boolean;
-}
-
-interface Invoice {
-  id: UUID;
-  userId: UUID;
-  clientId: UUID;
-  invoiceNumber: string;            // e.g. "INV-0023"
-  status: InvoiceStatus;            // computed on read with overdue override
-  issueDate: ISODate;
-  dueDate: ISODate;
-  currency: CurrencyCode;
-  lineItems: LineItem[];
-  subtotal: Cents;                  // server-computed: sum of lineItem.amount
-  taxRate: number | null;           // percentage applied to taxable line items only
-  taxAmount: Cents;                 // server-computed
-  discountType: DiscountType | null;
-  discountValue: number;            // percentage (e.g. 10) or Cents depending on discountType; 0 if no discount
-  discountAmount: Cents;            // server-computed
-  total: Cents;                     // server-computed: subtotal + taxAmount − discountAmount
-  amountPaid: Cents;                // sum of all recorded payments
-  amountDue: Cents;                 // total − amountPaid
-  notes: string | null;
-  terms: string | null;
-  sentAt: ISODateTime | null;
-  paidAt: ISODateTime | null;
-  createdAt: ISODateTime;
-  updatedAt: ISODateTime;
-}
-
-/**
- * Lightweight invoice representation used in lists, dashboard widgets,
- * and client invoice history.
- */
-interface InvoiceSummary {
-  id: UUID;
-  invoiceNumber: string;
-  status: InvoiceStatus;    // computed with overdue override
-  clientId: UUID;
-  clientName: string;
-  total: Cents;
-  amountDue: Cents;
-  currency: CurrencyCode;
-  issueDate: ISODate;
-  dueDate: ISODate;
-  createdAt: ISODateTime;
-}
-
-// ─────────────────────────────────────────────────────────────
-// Payment
-// ─────────────────────────────────────────────────────────────
-
-type PaymentMethod = "cash" | "bank_transfer" | "check" | "credit_card" | "other";
-
-interface Payment {
-  id: UUID;
-  invoiceId: UUID;
-  amount: Cents;
-  method: PaymentMethod;
-  reference: string | null;   // e.g. check number, transfer reference
-  notes: string | null;
-  paidAt: ISODate;
-  createdAt: ISODateTime;
-}
-
-// ─────────────────────────────────────────────────────────────
-// Catalog Item
-// ─────────────────────────────────────────────────────────────
-
-interface CatalogItem {
-  id: UUID;
-  userId: UUID;
-  name: string;
-  description: string | null;
-  unitPrice: Cents;
-  unit: string | null;        // e.g. "hour", "day", "piece"
-  taxable: boolean;
-  createdAt: ISODateTime;
-  updatedAt: ISODateTime;
-}
-
-// ─────────────────────────────────────────────────────────────
-// Dashboard
-// ─────────────────────────────────────────────────────────────
-
-interface DashboardStats {
-  totalOutstanding: Cents;          // sum of amountDue for all sent+partial invoices
-  totalOverdue: Cents;              // sum of amountDue for overdue invoices
-  paidThisMonth: Cents;             // sum of total for invoices paid in current calendar month
-  currency: CurrencyCode;           // user's defaultCurrency; stats exclude other currencies
-  recentInvoices: InvoiceSummary[]; // last 5 by createdAt desc, any status
-  overdueInvoices: InvoiceSummary[];// all overdue, sorted dueDate asc
-}
-
-// ─────────────────────────────────────────────────────────────
-// Internal DB models (never serialised to API responses)
-// ─────────────────────────────────────────────────────────────
-
-/** Stored in DB; raw token is sent in cookie only, never stored */
-interface RefreshTokenRecord {
-  id: UUID;
-  userId: UUID;
-  tokenHash: string;        // SHA-256 hex of raw JWT
-  expiresAt: ISODateTime;
-  usedAt: ISODateTime | null;
-  createdAt: ISODateTime;
-}
-
-interface PasswordResetTokenRecord {
-  id: UUID;
-  userId: UUID;
-  tokenHash: string;        // SHA-256 hex of raw token
-  expiresAt: ISODateTime;
-  usedAt: ISODateTime | null;
-  createdAt: ISODateTime;
-}
-```
-
----
-
-## API Routes
-
-### Auth
-
----
-
-#### `POST /api/auth/register` [PUBLIC]
-
-Create a new user account and begin a session.
-
-**Request body:**
-```typescript
-interface RegisterRequest {
-  name: string;       // required; 1–100 characters
-  email: string;      // required; valid email format
-  password: string;   // required; min 8 chars, ≥1 uppercase, ≥1 digit
-}
-```
-
-**Success `200 OK`:**
-```typescript
-interface RegisterResponse {
-  data: User;
-}
-```
-Sets cookies: `invoicer_access` (httpOnly, Secure, SameSite=Strict, 15 min), `invoicer_refresh` (httpOnly, Secure, SameSite=Strict, 7 days).
-Side effect: creates a `BusinessProfile` record with default values for the new user.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `VALIDATION_ERROR` | Missing/invalid fields; `field` indicates which |
-| 409 | `EMAIL_TAKEN` | Email already registered |
-
----
-
-#### `POST /api/auth/login` [PUBLIC]
-
-Authenticate an existing user.
-
-**Request body:**
-```typescript
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-```
-
-**Success `200 OK`:**
-```typescript
-interface LoginResponse {
-  data: User;
-}
-```
-Sets cookies: `invoicer_access`, `invoicer_refresh`.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `VALIDATION_ERROR` | Missing fields |
-| 401 | `INVALID_CREDENTIALS` | Email not found or password incorrect |
-
----
-
-#### `POST /api/auth/logout`
-
-End the current session.
-
-**Request body:** none
-
-**Success `200 OK`:**
-```typescript
-{ success: true }
-```
-Expires both cookies. Marks the refresh token record's `usedAt` in the database.
-
----
-
-#### `POST /api/auth/refresh` [PUBLIC]
-
-Exchange a valid refresh token for a new access token. Called automatically by the client interceptor.
-
-**Request body:** none (reads `invoicer_refresh` cookie)
-
-**Success `200 OK`:**
-```typescript
-{ success: true }
-```
-Issues new `invoicer_access` cookie. Rotates refresh token: issues new `invoicer_refresh` cookie, marks old token as used.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 401 | `INVALID_REFRESH_TOKEN` | Cookie missing, JWT invalid, token expired, or token already used |
-
----
-
-#### `POST /api/auth/forgot-password` [PUBLIC]
-
-Trigger a password reset email.
-
-**Request body:**
-```typescript
-interface ForgotPasswordRequest {
-  email: string;
-}
-```
-
-**Success `200 OK`:**
-```typescript
-{ success: true }
-```
-Response is identical regardless of whether the email is registered (prevents enumeration). If registered and SMTP is configured, sends email with reset link: `{NEXT_PUBLIC_APP_URL}/reset-password?token=<signed_token>`. Token expires in 1 hour.
-
----
-
-#### `POST /api/auth/reset-password` [PUBLIC]
-
-Set a new password using a reset token.
-
-**Request body:**
-```typescript
-interface ResetPasswordRequest {
-  token: string;          // the raw token from the reset link query parameter
-  newPassword: string;    // min 8 chars, ≥1 uppercase, ≥1 digit
-}
-```
-
-**Success `200 OK`:**
-```typescript
-{ success: true }
-```
-Marks token `usedAt`. Does not start a session; user must log in separately.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `VALIDATION_ERROR` | `newPassword` fails requirements; `field: "newPassword"` |
-| 400 | `TOKEN_INVALID` | Token not found or expired |
-| 400 | `TOKEN_USED` | Token already used |
-
----
-
-### Business Profile
-
----
-
-#### `GET /api/profile`
-
-Fetch the authenticated user's business profile.
-
-**Success `200 OK`:**
-```typescript
-interface GetProfileResponse {
-  data: BusinessProfile;
-}
-```
-
----
-
-#### `PATCH /api/profile`
-
-Update business profile fields. Only provided fields are updated (partial update).
-
-**Request body:**
-```typescript
-interface UpdateProfileRequest {
-  businessName?: string;             // must not be empty string if provided
-  address?: Address | null;
-  phone?: string | null;
-  email?: string | null;
-  website?: string | null;
-  taxId?: string | null;
-  defaultCurrency?: CurrencyCode;
-  defaultPaymentTermsDays?: number;  // integer ≥ 0
-  defaultTaxRate?: number | null;    // percentage; null removes default tax
-  defaultNotes?: string | null;
-  defaultTerms?: string | null;
-  invoicePrefix?: string;            // 1–10 characters; alphanumeric and hyphens only
-  nextInvoiceNumber?: number;        // integer ≥ 1
-}
-```
-
-**Success `200 OK`:**
-```typescript
-interface UpdateProfileResponse {
-  data: BusinessProfile;
-}
-```
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `VALIDATION_ERROR` | `businessName` is empty, invalid field values; `field` set |
-
----
-
-#### `POST /api/profile/logo`
-
-Upload or replace the business logo. Multipart form data.
-
-**Request:** `Content-Type: multipart/form-data`
-- Form field name: `logo`
-- Accepted MIME types: `image/jpeg`, `image/png`
-- Maximum file size: 2 MB
-
-**Success `200 OK`:**
-```typescript
-interface LogoUploadResponse {
-  data: {
-    logoUrl: string;  // absolute URL to the stored logo file
-  };
-}
-```
-Side effect: updates `BusinessProfile.logoUrl` in the database.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `VALIDATION_ERROR` | No file provided |
-| 413 | `FILE_TOO_LARGE` | File exceeds 2 MB |
-| 415 | `UNSUPPORTED_MEDIA_TYPE` | MIME type is not `image/jpeg` or `image/png` |
-
----
-
-#### `DELETE /api/profile/logo`
-
-Remove the business logo.
-
-**Success `200 OK`:**
-```typescript
-{ success: true }
-```
-Side effects: sets `BusinessProfile.logoUrl` to `null` in the database; deletes the file from storage backend.
-
----
-
-### Clients
-
----
-
-#### `GET /api/clients`
-
-List clients for the authenticated user.
-
-**Query parameters:**
-```
-search?: string    // case-insensitive substring match on name, email, company
-page?:   number    // default: 1
-limit?:  number    // default: 20; maximum: 100
-```
-
-**Success `200 OK`:**
-```typescript
-interface ListClientsResponse {
-  data: Client[];
-  meta: { total: number; page: number; limit: number };
-}
-```
-
----
-
-#### `POST /api/clients`
-
-Create a new client.
-
-**Request body:**
-```typescript
-interface CreateClientRequest {
-  name: string;                  // required
-  email?: string | null;
-  phone?: string | null;
-  company?: string | null;
-  address?: Address | null;
-  currency?: CurrencyCode;       // defaults to businessProfile.defaultCurrency
-  notes?: string | null;
-}
-```
-
-**Success `201 Created`:**
-```typescript
-interface CreateClientResponse {
-  data: Client;
-}
-```
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `VALIDATION_ERROR` | `name` missing or empty; `field: "name"` |
-
----
-
-#### `GET /api/clients/:id`
-
-Fetch a single client with computed stats.
-
-**Success `200 OK`:**
-```typescript
-interface GetClientResponse {
-  data: ClientWithStats;
-}
-```
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 404 | `NOT_FOUND` | Client not found or belongs to a different user |
-
----
-
-#### `PATCH /api/clients/:id`
-
-Update client fields (partial update).
-
-**Request body:**
-```typescript
-interface UpdateClientRequest {
-  name?: string;
-  email?: string | null;
-  phone?: string | null;
-  company?: string | null;
-  address?: Address | null;
-  currency?: CurrencyCode;
-  notes?: string | null;
-}
-```
-
-**Success `200 OK`:**
-```typescript
-interface UpdateClientResponse {
-  data: Client;
-}
-```
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `VALIDATION_ERROR` | `name` is empty |
-| 404 | `NOT_FOUND` | Client not found |
-
----
-
-#### `DELETE /api/clients/:id`
-
-Delete a client.
-
-**Success `200 OK`:**
-```typescript
-{ success: true }
-```
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 404 | `NOT_FOUND` | Client not found |
-| 409 | `CLIENT_HAS_INVOICES` | One or more non-void invoices exist for this client |
-
----
-
-#### `GET /api/clients/:id/invoices`
-
-List all invoices associated with a specific client.
-
-**Query parameters:**
-```
-page?:   number
-limit?:  number         // default: 20; max: 100
-status?: InvoiceStatus  // filter; "overdue" triggers dueDate < today check
-```
-
-**Success `200 OK`:**
-```typescript
-interface ListClientInvoicesResponse {
-  data: InvoiceSummary[];
-  meta: { total: number; page: number; limit: number };
-}
-```
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 404 | `NOT_FOUND` | Client not found |
-
----
-
-### Invoices
-
----
-
-#### `GET /api/invoices/next-number`
-
-Return the next auto-generated invoice number without reserving it or incrementing the counter.
-
-**Success `200 OK`:**
-```typescript
-interface NextNumberResponse {
-  data: {
-    invoiceNumber: string;  // e.g. "INV-0024"
-  };
-}
-```
-
----
-
-#### `GET /api/invoices`
-
-List all invoices for the authenticated user.
-
-**Query parameters:**
-```
-page?:    number
-limit?:   number           // default: 20; max: 100
-status?:  InvoiceStatus    // filter; "overdue" triggers computed dueDate < today check
-clientId?: UUID            // filter to a specific client
-search?:  string           // case-insensitive match on invoiceNumber or clientName
-sortBy?:  "dueDate" | "createdAt" | "total" | "invoiceNumber"   // default: "createdAt"
-sortDir?: "asc" | "desc"   // default: "desc"
-```
-
-**Success `200 OK`:**
-```typescript
-interface ListInvoicesResponse {
-  data: InvoiceSummary[];
-  meta: { total: number; page: number; limit: number };
-}
-```
-Note: when `status=overdue` is passed, the server queries for stored status `sent` or `partial` where `dueDate < today`. All returned items have `status: "overdue"` in the response.
-
----
-
-#### `POST /api/invoices`
-
-Create a new invoice. Always creates with `status: "draft"`.
-
-**Request body:**
-```typescript
-interface CreateInvoiceRequest {
-  clientId: UUID;                          // required
-  invoiceNumber?: string;                  // optional override; omit for auto-generation
-  issueDate: ISODate;                      // required
-  dueDate: ISODate;                        // required; must be ≥ issueDate
-  currency?: CurrencyCode;                 // defaults to client.currency
-  lineItems: CreateLineItemRequest[];      // required; min 1 element
-  taxRate?: number | null;                 // percentage; null = no tax
-  discountType?: DiscountType | null;
-  discountValue?: number;                  // percentage or Cents; 0 or omit for no discount
-  notes?: string | null;
-  terms?: string | null;
-}
-
-interface CreateLineItemRequest {
-  description: string;     // required
-  quantity: number;        // required; must be > 0
-  unitPrice: Cents;        // required; must be ≥ 0 (integer)
-  taxable?: boolean;       // default: false
-}
-```
-
-**Success `201 Created`:**
-```typescript
-interface CreateInvoiceResponse {
-  data: Invoice;
-}
-```
-Side effects:
-- If `invoiceNumber` is omitted, the server generates it from `{invoicePrefix}-{zero-padded nextInvoiceNumber}` and increments `BusinessProfile.nextInvoiceNumber`.
-- Server computes and stores `subtotal`, `taxAmount`, `discountAmount`, `total`, `amountPaid: 0`, `amountDue: total`.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `VALIDATION_ERROR` | Missing required fields, quantity ≤ 0, unitPrice is not an integer, dueDate < issueDate |
-| 404 | `NOT_FOUND` | `clientId` does not reference an existing client |
-| 409 | `DUPLICATE_INVOICE_NUMBER` | Provided `invoiceNumber` already exists for this user |
-
----
-
-#### `GET /api/invoices/:id`
-
-Fetch full invoice details.
-
-**Success `200 OK`:**
-```typescript
-interface GetInvoiceResponse {
-  data: Invoice;
-}
-```
-Overdue override is applied to `status` in the response.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 404 | `NOT_FOUND` | Invoice not found or belongs to a different user |
-
----
-
-#### `PATCH /api/invoices/:id`
-
-Update a draft invoice. Only `draft` invoices may be edited.
-
-**Request body:**
-```typescript
-interface UpdateInvoiceRequest {
-  clientId?: UUID;
-  invoiceNumber?: string;
-  issueDate?: ISODate;
-  dueDate?: ISODate;
-  currency?: CurrencyCode;
-  lineItems?: UpdateLineItemRequest[];  // if provided, REPLACES all existing line items
-  taxRate?: number | null;
-  discountType?: DiscountType | null;
-  discountValue?: number;
-  notes?: string | null;
-  terms?: string | null;
-}
-
-interface UpdateLineItemRequest {
-  id?: UUID;            // omit to insert a new line item; provide to update an existing one
-  description: string;
-  quantity: number;     // must be > 0
-  unitPrice: Cents;     // integer
-  taxable?: boolean;
-}
-```
-
-**Success `200 OK`:**
-```typescript
-interface UpdateInvoiceResponse {
-  data: Invoice;
-}
-```
-Server recomputes all monetary totals after update.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `INVOICE_NOT_EDITABLE` | Stored status is not `draft` |
-| 400 | `VALIDATION_ERROR` | Invalid field values; `field` set |
-| 404 | `NOT_FOUND` | Invoice not found |
-| 409 | `DUPLICATE_INVOICE_NUMBER` | New `invoiceNumber` conflicts with another invoice |
-
----
-
-#### `DELETE /api/invoices/:id`
-
-Soft-delete a draft invoice. Only `draft` invoices can be deleted this way; non-drafts must be voided.
-
-**Success `200 OK`:**
-```typescript
-{ success: true }
-```
-Sets `deletedAt` timestamp on the invoice record. Deleted invoices are excluded from all list and stat queries.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `INVOICE_NOT_EDITABLE` | Stored status is not `draft` |
-| 404 | `NOT_FOUND` | Invoice not found |
-
----
-
-#### `POST /api/invoices/:id/send`
-
-Mark an invoice as sent and optionally email the PDF.
-
-**Request body:**
-```typescript
-interface SendInvoiceRequest {
-  recipientEmail: string;  // required; valid email address
-  message?: string;        // optional email body text; max 1000 characters
-}
-```
-
-**Success `200 OK`:**
-```typescript
-interface SendInvoiceResponse {
-  data: Invoice;  // updated invoice: status "sent", sentAt set
-}
-```
-Side effects:
-- Sets `status: "sent"` and `sentAt` to current UTC timestamp.
-- If `SMTP_HOST` env var is set: generates PDF, sends email to `recipientEmail` with subject `Invoice {invoiceNumber} from {businessName}`, optional `message` in body, PDF attachment.
-- If `SMTP_HOST` is not set: skips email silently; send still succeeds.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `INVALID_STATUS_TRANSITION` | Stored status is not `draft` |
-| 400 | `VALIDATION_ERROR` | `recipientEmail` is not a valid email |
-| 404 | `NOT_FOUND` | Invoice not found |
-
----
-
-#### `POST /api/invoices/:id/void`
-
-Void an invoice.
-
-**Request body:** none
-
-**Success `200 OK`:**
-```typescript
-interface VoidInvoiceResponse {
-  data: Invoice;  // updated invoice: status "void"
-}
-```
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `INVALID_STATUS_TRANSITION` | Stored status is `paid` or already `void` |
-| 404 | `NOT_FOUND` | Invoice not found |
-
----
-
-#### `POST /api/invoices/:id/duplicate`
-
-Create a new draft invoice copied from an existing one.
-
-**Request body:** none
-
-**Success `201 Created`:**
-```typescript
-interface DuplicateInvoiceResponse {
-  data: Invoice;  // new draft invoice
-}
-```
-The duplicated invoice inherits: `clientId`, `currency`, `lineItems` (copied by value), `taxRate`, `discountType`, `discountValue`, `notes`, `terms`.
-The duplicated invoice receives: auto-generated `invoiceNumber`, `status: "draft"`, `issueDate: today`, `dueDate: today + businessProfile.defaultPaymentTermsDays`, `amountPaid: 0`.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 404 | `NOT_FOUND` | Invoice not found |
-
----
-
-#### `GET /api/invoices/:id/pdf`
-
-Generate and stream the invoice as a PDF file.
-
-**Success `200 OK`:**
-- `Content-Type: application/pdf`
-- `Content-Disposition: attachment; filename="<invoiceNumber>.pdf"`
-- Body: binary PDF stream (A4, generated server-side via `@react-pdf/renderer`)
-
-**Errors (JSON body):**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `INVOICE_VOID` | Invoice status is `void` |
-| 404 | `NOT_FOUND` | Invoice not found |
-| 500 | `PDF_GENERATION_FAILED` | Unexpected error during PDF generation |
-
----
-
-### Payments
-
----
-
-#### `GET /api/invoices/:id/payments`
-
-List all payments recorded for an invoice.
-
-**Success `200 OK`:**
-```typescript
-interface ListPaymentsResponse {
-  data: Payment[];  // sorted by paidAt descending
-}
-```
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 404 | `NOT_FOUND` | Invoice not found |
-
----
-
-#### `POST /api/invoices/:id/payments`
-
-Record a payment against an invoice.
-
-**Request body:**
-```typescript
-interface CreatePaymentRequest {
-  amount: Cents;              // required; integer > 0 and ≤ current amountDue
-  method: PaymentMethod;      // required
-  paidAt?: ISODate;           // defaults to today (UTC); must not be a future date
-  reference?: string | null;  // max 200 characters
-  notes?: string | null;      // max 500 characters
-}
-```
-
-**Success `201 Created`:**
-```typescript
-interface CreatePaymentResponse {
-  data: {
-    payment: Payment;
-    invoice: Invoice;  // updated invoice: new amountPaid, amountDue, status
-  };
-}
-```
-Side effects:
-- Inserts payment record.
-- Recalculates invoice `amountPaid` (sum of all payments) and `amountDue` (`total − amountPaid`).
-- If `amountPaid === invoice.total`: sets stored status to `paid`, sets invoice `paidAt` to this payment's `paidAt`.
-- If `amountPaid < invoice.total`: sets stored status to `partial`.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `INVALID_STATUS_TRANSITION` | Stored status is `draft`, `paid`, or `void` |
-| 400 | `VALIDATION_ERROR` | `amount ≤ 0`, `amount > amountDue`, invalid `method`, `paidAt` is a future date |
-| 404 | `NOT_FOUND` | Invoice not found |
-
----
-
-#### `DELETE /api/invoices/:id/payments/:paymentId`
-
-Delete a recorded payment and re-evaluate invoice status.
-
-**Success `200 OK`:**
-```typescript
-interface DeletePaymentResponse {
-  data: {
-    invoice: Invoice;  // updated invoice: recalculated amountPaid, amountDue, status
-  };
-}
-```
-Side effects:
-- Removes payment record.
-- Recalculates invoice `amountPaid` and `amountDue`.
-- Re-evaluates status:
-  - `amountPaid === 0` → stored status reverts to `sent`.
-  - `0 < amountPaid < total` → stored status remains/becomes `partial`.
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 404 | `NOT_FOUND` | Payment not found, or does not belong to this invoice |
-
----
-
-### Catalog Items
-
----
-
-#### `GET /api/catalog`
-
-List all catalog items for the authenticated user.
-
-**Query parameters:**
-```
-search?: string  // case-insensitive substring match on name and description
-```
-
-**Success `200 OK`:**
-```typescript
-interface ListCatalogResponse {
-  data: CatalogItem[];  // all items (no pagination); sorted by name ascending
-}
-```
-
----
-
-#### `POST /api/catalog`
-
-Create a catalog item.
-
-**Request body:**
-```typescript
-interface CreateCatalogItemRequest {
-  name: string;                 // required
-  description?: string | null;
-  unitPrice: Cents;             // required; integer ≥ 0
-  unit?: string | null;         // e.g. "hour", "day"; max 20 characters
-  taxable?: boolean;            // default: false
-}
-```
-
-**Success `201 Created`:**
-```typescript
-interface CreateCatalogItemResponse {
-  data: CatalogItem;
-}
-```
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `VALIDATION_ERROR` | `name` missing, `unitPrice` < 0 or non-integer |
-| 400 | `CATALOG_LIMIT_EXCEEDED` | User already has 500 catalog items |
-
----
-
-#### `PATCH /api/catalog/:id`
-
-Update a catalog item (partial update).
-
-**Request body:**
-```typescript
-interface UpdateCatalogItemRequest {
-  name?: string;
-  description?: string | null;
-  unitPrice?: Cents;
-  unit?: string | null;
-  taxable?: boolean;
-}
-```
-
-**Success `200 OK`:**
-```typescript
-interface UpdateCatalogItemResponse {
-  data: CatalogItem;
-}
-```
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 400 | `VALIDATION_ERROR` | `name` is empty, `unitPrice` is negative or non-integer |
-| 404 | `NOT_FOUND` | Catalog item not found |
-
----
-
-#### `DELETE /api/catalog/:id`
-
-Delete a catalog item.
-
-**Success `200 OK`:**
-```typescript
-{ success: true }
-```
-No effect on existing invoice line items (they store values by copy).
-
-**Errors:**
-| HTTP | `code` | Condition |
-|------|--------|-----------|
-| 404 | `NOT_FOUND` | Catalog item not found |
-
----
-
-### Dashboard
-
----
-
-#### `GET /api/dashboard/stats`
-
-Return all dashboard aggregates in a single request.
-
-**Success `200 OK`:**
-```typescript
-interface DashboardStatsResponse {
-  data: DashboardStats;
-}
-```
-All monetary totals are computed only over invoices in `businessProfile.defaultCurrency`. Invoices in other currencies are excluded from aggregate calculations.
-
----
-
-## UI Component → API Endpoint Map
-
-| Component / Page | Method | Endpoint | Trigger | Response Handling |
-|-----------------|--------|----------|---------|-------------------|
-| `RegisterPage` | POST | `/api/auth/register` | "Create Account" form submit | Success → redirect to `/onboarding`. HTTP 409 → inline error "An account with this email already exists." HTTP 400 → highlight invalid field. |
-| `LoginPage` | POST | `/api/auth/login` | "Sign In" form submit | Success → redirect to `/dashboard`. HTTP 401 → inline error "Invalid email or password." |
-| `LogoutButton` | POST | `/api/auth/logout` | Click | Clear local React state and router cache. Redirect to `/login`. |
-| `ClientInterceptor` (global fetch wrapper) | POST | `/api/auth/refresh` | Any API call returns HTTP 401 | Retry original request. If retry returns 401 → clear state, redirect `/login`. |
-| `ForgotPasswordPage` | POST | `/api/auth/forgot-password` | Form submit | Always display: "If that email is registered, you'll receive a reset link shortly." |
-| `ResetPasswordPage` | POST | `/api/auth/reset-password` | Form submit | Success → redirect `/login?reset=true`. HTTP 400 TOKEN_INVALID/TOKEN_USED → "This link is invalid or has expired. Please request a new one." |
-| `OnboardingPage` — logo field | POST | `/api/profile/logo` | Logo file selected (onChange) | Success → store `logoUrl` in component state, render preview. HTTP 413 → "File is too large (max 2 MB)." HTTP 415 → "Only JPEG and PNG files are accepted." |
-| `OnboardingPage` — finish | PATCH | `/api/profile` | "Finish Setup" click | Success → redirect `/dashboard`. |
-| `SettingsPage` — mount | GET | `/api/profile` | Page mount | Populate all form fields with returned `BusinessProfile`. |
-| `SettingsPage` — save | PATCH | `/api/profile` | "Save Changes" submit | Success → show toast "Profile updated." HTTP 400 → highlight invalid fields. |
-| `LogoUpload` — upload | POST | `/api/profile/logo` | File input `onChange` | Success → update parent state with new `logoUrl`, render new preview. |
-| `LogoUpload` — remove | DELETE | `/api/profile/logo` | "Remove Logo" click | Success → set `logoUrl` to `null` in parent state, clear preview. |
-| `DashboardPage` — mount | GET | `/api/dashboard/stats` | Page mount | Populate all four stat cards and both invoice widgets. |
-| `RecentInvoicesWidget` | — | — | — | Renders `data.recentInvoices` from `DashboardStats`. No separate fetch. |
-| `OverdueInvoicesWidget` | — | — | — | Renders `data.overdueInvoices` from `DashboardStats`. No separate fetch. |
-| `InvoiceListPage` — mount | GET | `/api/invoices` | Page mount | Render invoice table rows. Sync filter/sort/page values to URL search params. |
-| `InvoiceListPage` — filter change | GET | `/api/invoices` | Status filter, search input (debounced 300 ms), sort header click, page change | Re-fetch with updated query params. Replace URL in browser history. |
-| `InvoiceListPage` — download row | GET | `/api/invoices/:id/pdf` | "Download PDF" row action click | Trigger browser file download via `<a href=... download>`. |
-| `InvoiceNewPage` — mount | GET | `/api/invoices/next-number` | Page mount | Pre-fill the invoice number input. |
-| `InvoiceNewPage` — client autocomplete | GET | `/api/clients?search=<q>` | User types in client field (debounced 300 ms) | Render dropdown of matching `Client` objects. On selection, populate client field and set `currency` default. |
-| `InvoiceNewPage` — line item catalog search | GET | `/api/catalog?search=<q>` | User types in line item description (debounced 300 ms) | Render suggestions. On selection, set description, unitPrice, taxable. |
-| `InvoiceNewPage` — save | POST | `/api/invoices` | "Save as Draft" submit | Success → redirect to `/invoices/:id`. HTTP 400 → show field errors inline. HTTP 409 DUPLICATE_INVOICE_NUMBER → "Invoice number already in use." |
-| `InvoiceDetailPage` — mount | GET | `/api/invoices/:id` | Page mount | Render all invoice fields and status badge. |
-| `InvoiceDetailPage` — payments mount | GET | `/api/invoices/:id/payments` | Page mount (concurrent with invoice fetch) | Render payment history list. |
-| `InvoiceDetailPage` — edit (draft only) | PATCH | `/api/invoices/:id` | "Save" in edit mode | Success → update invoice state, show toast "Invoice saved." HTTP 400 INVOICE_NOT_EDITABLE → "This invoice cannot be edited." |
-| `InvoiceDetailPage` — delete (draft only) | DELETE | `/api/invoices/:id` | "Delete" → confirmation modal confirm | Success → redirect to `/invoices`, show toast "Invoice deleted." |
-| `SendInvoiceModal` — submit | POST | `/api/invoices/:id/send` | "Send" button in modal | Success → close modal, update invoice status badge to `sent`, show toast "Invoice sent." HTTP 400 INVALID_STATUS_TRANSITION → close modal, refresh page. |
-| `RecordPaymentModal` — submit | POST | `/api/invoices/:id/payments` | "Save Payment" button | Success → close modal, update invoice state (status badge, amountDue row), prepend new payment to history list. |
-| `PaymentHistoryItem` — delete | DELETE | `/api/invoices/:id/payments/:paymentId` | Trash icon → inline confirm | Success → remove payment from list, update invoice state (amountPaid, amountDue, status). |
-| `VoidInvoiceModal` — confirm | POST | `/api/invoices/:id/void` | "Confirm Void" button | Success → close modal, set invoice status to `void`, hide Send/Record Payment/Edit buttons. |
-| `DuplicateInvoiceButton` | POST | `/api/invoices/:id/duplicate` | "Duplicate Invoice" menu item | Success → redirect to `/invoices/<newId>`. |
-| `DownloadPdfButton` | GET | `/api/invoices/:id/pdf` | "Download PDF" button | Trigger file download. HTTP 400 INVOICE_VOID → show toast "Cannot download PDF for a voided invoice." |
-| `ClientListPage` — mount | GET | `/api/clients` | Page mount | Render client table. |
-| `ClientListPage` — search | GET | `/api/clients?search=<q>` | Search input change (debounced 300 ms) | Re-render table with filtered results. |
-| `ClientListPage` — add modal submit | POST | `/api/clients` | "Save" in Add Client modal | Success → close modal, prepend new client to list. HTTP 400 → highlight invalid fields. |
-| `ClientDetailPage` — mount | GET | `/api/clients/:id` | Page mount | Render client profile with stats. |
-| `ClientDetailPage` — invoices | GET | `/api/clients/:id/invoices` | Page mount (concurrent) | Render invoice history table. |
-| `ClientDetailPage` — edit submit | PATCH | `/api/clients/:id` | "Save Changes" | Success → update displayed fields, show toast "Client updated." |
-| `ClientDetailPage` — delete | DELETE | `/api/clients/:id` | "Delete Client" → confirmation modal | Success → redirect to `/clients`. HTTP 409 CLIENT_HAS_INVOICES → show error in modal: "This client has existing invoices and cannot be deleted." |
-| `CatalogPage` — mount | GET | `/api/catalog` | Page mount | Render catalog item list. |
-| `CatalogPage` — add item | POST | `/api/catalog` | "Save" in Add Item form | Success → append item to list. HTTP 400 CATALOG_LIMIT_EXCEEDED → "You've reached the 500 item limit." |
-| `CatalogPage` — edit item | PATCH | `/api/catalog/:id` | "Save" in Edit Item form | Success → update item in list in place. |
-| `CatalogPage` — delete item | DELETE | `/api/catalog/:id` | Trash icon → inline confirm | Success → remove item from list. |
-
----
-
-## Environment Variables
-
-All variables must be present at application startup. The server throws an error and refuses to start if any **Required** variable is missing.
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `DATABASE_URL` | **Yes** | — | PostgreSQL connection string. Format: `postgresql://user:password@host:port/dbname?schema=public` |
-| `JWT_ACCESS_SECRET` | **Yes** | — | Secret for signing access token JWTs. Minimum 32 characters. Must differ from `JWT_REFRESH_SECRET`. |
-| `JWT_REFRESH_SECRET` | **Yes** | — | Secret for signing refresh token JWTs. Minimum 32 characters. |
-| `JWT_ACCESS_EXPIRES_IN` | No | `"15m"` | Access token TTL in `ms` / `jsonwebtoken` format (e.g. `"15m"`, `"900"`). |
-| `JWT_REFRESH_EXPIRES_IN` | No | `"7d"` | Refresh token TTL. |
-| `NEXT_PUBLIC_APP_URL` | **Yes** | — | Public base URL of the application, no trailing slash. E.g. `https://app.invoicer.io`. Used in password reset email links. |
-| `NODE_ENV` | No | `"development"` | `"development"` or `"production"`. Controls cookie `Secure` flag and storage provider default. |
-| `STORAGE_PROVIDER` | No | `"local"` | `"local"` for local filesystem or `"s3"` for AWS S3. Production deployments must use `"s3"`. |
-| `LOCAL_UPLOAD_DIR` | No | `"./public/uploads"` | Absolute or relative path for local file storage. Only used when `STORAGE_PROVIDER=local`. |
-| `AWS_ACCESS_KEY_ID` | If `STORAGE_PROVIDER=s3` | — | AWS IAM credentials for S3 access. |
-| `AWS_SECRET_ACCESS_KEY` | If `STORAGE_PROVIDER=s3` | — | AWS IAM credentials for S3 access. |
-| `AWS_S3_BUCKET` | If `STORAGE_PROVIDER=s3` | — | S3 bucket name. Bucket must have public read enabled for logo URLs to resolve. |
-| `AWS_S3_REGION` | If `STORAGE_PROVIDER=s3` | — | AWS region, e.g. `"us-east-1"`. |
-| `SMTP_HOST` | No | — | SMTP server hostname. If absent, all email sending is skipped without error. |
-| `SMTP_PORT` | No | `587` | SMTP server port. |
-| `SMTP_SECURE` | No | `"false"` | `"true"` to use TLS (port 465). `"false"` for STARTTLS (port 587). |
-| `SMTP_USER` | If `SMTP_HOST` set | — | SMTP authentication username. |
-| `SMTP_PASSWORD` | If `SMTP_HOST` set | — | SMTP authentication password. |
-| `SMTP_FROM` | If `SMTP_HOST` set | — | From address for all sent emails. E.g. `"Invoicer <noreply@invoicer.io>"`. |
-
----
-
-## Third-Party Services
-
-### PostgreSQL (via Prisma)
-
-- **Role:** Primary relational database. Stores all application data: users, profiles, clients, invoices, line items, payments, catalog items, refresh tokens, password reset tokens.
-- **Library:** `prisma` (`@prisma/client`)
-- **Usage notes:**
-  - All database access is isolated to server-side route handlers and service modules. `PrismaClient` is never imported in files containing `"use client"`.
-  - A single `PrismaClient` instance is shared across the application via a module-level singleton (`lib/db.ts`) to avoid connection pool exhaustion in development (Next.js hot reload).
-  - Migrations are managed via `prisma migrate dev` (development) and `prisma migrate deploy` (production CI/CD).
-  - Soft-delete pattern: invoices include a `deletedAt: DateTime?` column; all queries filter `WHERE deletedAt IS NULL`.
-
-### AWS S3
-
-- **Role:** Object storage for business logo files in production.
-- **Library:** `@aws-sdk/client-s3` (`PutObjectCommand`, `DeleteObjectCommand`)
-- **Usage notes:**
-  - Upload path: `logos/<userId>/<uuid>.<ext>`. UUID is generated per upload to prevent cache collisions.
-  - Stored URL format: `https://<bucket>.s3.<region>.amazonaws.com/logos/<userId>/<uuid>.<ext>`.
-  - S3 objects are created with `ACL: "public-read"` so logo URLs are directly accessible in PDF templates and the browser.
-  - On `DELETE /api/profile/logo`, the server calls `DeleteObjectCommand` before nulling `BusinessProfile.logoUrl`.
-  - In development (`STORAGE_PROVIDER=local`), files are written to `LOCAL_UPLOAD_DIR` and served by Next.js static file middleware at `/uploads/<filename>`.
-
-### SMTP Server / Nodemailer
-
-- **Role:** Transactional email delivery for invoice send and password reset flows.
-- **Library:** `nodemailer`
-- **Usage notes:**
-  - A single `mailer.ts` module exports a `sendMail(options)` function that wraps `nodemailer.createTransport()`.
-  - If `SMTP_HOST` is not set, `sendMail()` is a no-op that logs a `warn` message. No error is thrown.
-  - Compatible with any SMTP provider: SendGrid (`smtp.sendgrid.net:587`), Postmark (`smtp.postmarkapp.com:587`), AWS SES, Gmail (not recommended for production).
-  - **Invoice send email:**
-    - `Subject:` `Invoice {invoiceNumber} from {businessName}`
-    - `To:` `recipientEmail` from request body
-    - `From:` `SMTP_FROM`
-    - `Body:` Minimal HTML email containing the optional `message` field
-    - `Attachment:` PDF buffer generated by `@react-pdf/renderer`, `filename: "{invoiceNumber}.pdf"`
-  - **Password reset email:**
-    - `Subject:` `Reset your Invoicer password`
-    - `Body:` HTML containing a single CTA button linking to `{NEXT_PUBLIC_APP_URL}/reset-password?token=<token>`
-
-### @react-pdf/renderer
-
-- **Role:** Server-side PDF generation for invoice downloads and email attachments.
-- **Library:** `@react-pdf/renderer`
-- **Usage notes:**
-  - A `generateInvoicePdf(invoice: Invoice, profile: BusinessProfile, client: Client): Promise<Buffer>` function renders a React PDF component tree to a binary `Buffer`.
-  - This function is called exclusively in server-side route handlers. It must never be imported into client-side component files.
-  - The PDF template uses inline styles (React PDF does not support Tailwind or CSS classes). Design tokens from F-11 are applied as JavaScript style objects.
-  - If `profile.logoUrl` is set, the PDF renderer fetches the image bytes and embeds them. Logo fetch errors are caught and the PDF is generated without the logo rather than failing the request.
-  - PDF is streamed directly to the HTTP response for `GET /api/invoices/:id/pdf`. For email attachments, the buffer is passed to `nodemailer` as `{ filename, content: buffer }`.
+## TypeScript Strict-Mode Notes
+
+- `lib/schema.ts` must compile under `strict: true` (existing `tsconfig.json`)
+- `lib/validators.ts` must compile under `strict: true`
+- All Drizzle query results are typed; no `any` casts
+- `lineItems` column uses `.$type<LineItem[]>()` to match the `LineItem` interface in `lib/models.ts`
+- Address reconstitution (flat columns → nested object) must handle `null` values for optional fields
