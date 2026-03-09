@@ -322,12 +322,12 @@ FRONTEND_FRAMEWORK_VERSION=16.1.6
 # Icons: lucide-react is used, NOT react-icons (template default was wrong)
 ICON_LIBRARY=lucide-react
 
-# Validation: custom validators in lib/validate.ts, NOT zod
-VALIDATION=none
+# Validation: Zod schemas in lib/validators.ts (migrated from custom lib/validate.ts)
+VALIDATION=zod
 
-# No database — all data is in-memory (globalThis.__invoicer_store__)
-DATABASE=none
-ORM=none
+# Database: SQLite via better-sqlite3 + Drizzle ORM (migrated from in-memory store)
+DATABASE=sqlite
+ORM=drizzle
 
 # Custom opaque token auth (not next-auth or clerk)
 AUTH_PROVIDER=none
@@ -342,13 +342,14 @@ EMAIL_SERVICE=none
 # No file storage — logo upload is a stub (fake CDN URL, file bytes discarded)
 FILE_STORAGE=none
 
-# No tests exist in codebase
-TEST_RUNNER=none
-TEST_APPROACH=none
+# Vitest for server-side unit/integration tests (Node environment)
+TEST_RUNNER=vitest
+TEST_APPROACH=tdd
 
 # ── Additional packages ──
-ADDITIONAL_PACKAGES=lucide-react@0.577.0
+ADDITIONAL_PACKAGES=lucide-react@0.577.0, drizzle-orm@^0.38.0, better-sqlite3@^11.0.0, zod@^3.24.0
 # @tailwindcss/postcss is the PostCSS plugin for Tailwind v4
+# drizzle-kit, @types/better-sqlite3, vitest, @vitejs/plugin-react are in devDependencies
 
 # ── Existing features ──
 EXISTING_FEATURES=user-registration,user-login,session-refresh,forgot-password-token,reset-password,post-registration-onboarding,business-profile-crud,logo-upload-stub,client-crud-with-stats,invoice-creation,invoice-list-with-filters,invoice-detail-view,invoice-edit-draft,invoice-send,invoice-void,invoice-duplicate,invoice-soft-delete,invoice-pdf-download,payment-recording,payment-deletion,catalog-crud,dashboard-stats,landing-page,responsive-sidebar-layout,toast-notifications,modal-system,status-badge,ssrf-protection
