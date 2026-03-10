@@ -20,7 +20,6 @@ import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { join } from 'path'
-import { eq, sql } from 'drizzle-orm'
 import * as schema from '@/lib/schema'
 import { createTestDb } from './helpers/db'
 
@@ -114,10 +113,8 @@ describe('users table schema (F3)', () => {
   })
 
   it('email has a UNIQUE constraint', () => {
-    const indexes = getIndexes(sqlite, 'users')
     // SQLite creates an automatic unique index; drizzle adds one too
     // Just test by attempting duplicate insert
-    const db = drizzle(sqlite, { schema })
     const now = new Date().toISOString()
     sqlite.exec(`INSERT INTO users VALUES ('id1','dup@test.com','A','hash','${now}','${now}')`)
     expect(() => {

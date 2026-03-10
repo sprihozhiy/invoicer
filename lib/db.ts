@@ -21,6 +21,10 @@ export function createDb(sqliteInstance?: SqliteDatabase): Db {
 }
 
 // Keeps app/test callers on the same singleton instance when they need to swap DBs.
+// REVIEW: syncDb() does not close the previous connection before replacing the global.
+// Callers are responsible for closing the old instance to avoid resource leaks.
+// Also note: modules that already imported `db` hold a cached reference — they won't
+// see the new instance unless they use dynamic imports *after* calling syncDb().
 export function syncDb(sqliteInstance?: SqliteDatabase): Db {
   const instance = createDb(sqliteInstance)
   globalThis.__invoicer_db__ = instance
