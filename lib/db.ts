@@ -5,14 +5,26 @@ import { join } from 'path'
 import * as schema from '@/lib/schema'
 
 export type Db = ReturnType<typeof drizzle<typeof schema>>
+type SqliteDatabase = InstanceType<typeof Database>
 
-export function createDb(sqliteInstance?: InstanceType<typeof Database>): Db {
-  const sqlite = sqliteInstance ?? new Database(process.env.DATABASE_URL ?? './invoicer.db')
+function initSqlite(sqlite: SqliteDatabase): void {
   sqlite.pragma('journal_mode = WAL')
   sqlite.pragma('foreign_keys = ON')
+}
+
+export function createDb(sqliteInstance?: SqliteDatabase): Db {
+  const sqlite = sqliteInstance ?? new Database(process.env.DATABASE_URL ?? './invoicer.db')
+  initSqlite(sqlite)
   const db = drizzle(sqlite, { schema })
   migrate(db, { migrationsFolder: join(process.cwd(), 'drizzle') })
   return db
+}
+
+// Keeps app/test callers on the same singleton instance when they need to swap DBs.
+export function syncDb(sqliteInstance?: SqliteDatabase): Db {
+  const instance = createDb(sqliteInstance)
+  globalThis.__invoicer_db__ = instance
+  return instance
 }
 
 declare global {
