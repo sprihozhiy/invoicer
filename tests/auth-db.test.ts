@@ -4,6 +4,7 @@ import { and, eq } from 'drizzle-orm'
 
 import * as schema from '@/lib/schema'
 import { sha256 } from '@/lib/ids'
+import { nowIso } from '@/lib/time'
 import { createTestDb, seedUser } from './helpers/db'
 
 async function loadAuthWithTestDb() {
@@ -173,6 +174,118 @@ describe('F7 auth DB migration tests', () => {
     try {
       // Must not throw
       expect(() => auth.invalidateRefreshToken(undefined)).not.toThrow()
+    } finally {
+      sqlite.close()
+    }
+  })
+})
+
+describe('Auth route review regression tests', () => {
+  beforeEach(() => {
+    vi.useRealTimers()
+  })
+
+  afterEach(() => {
+    delete globalThis.__invoicer_db__
+    vi.resetModules()
+    vi.restoreAllMocks()
+  })
+
+  it('reset-password accepts a raw token by matching reset_tokens.token_hash', async () => {
+    const testDb = createTestDb()
+    const { db, sqlite } = testDb
+    try {
+      const user = await seedUser(db, { passwordHash: 'old_hash' })
+      const suppliedRawToken = 'rst_expected_raw_token'
+      const now = nowIso()
+      await db.insert(schema.resetTokens).values({
+        id: 'reset_1',
+        userId: user.id,
+        tokenHash: sha256(suppliedRawToken),
+        rawToken: 'different_raw_value',
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        usedAt: null,
+        createdAt: now,
+      })
+
+      vi.resetModules()
+      globalThis.__invoicer_db__ = db
+      const { POST } = await import('@/app/api/auth/reset-password/route')
+
+      const req = new NextRequest('http://localhost/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: suppliedRawToken, newPassword: 'NewPassword123' }),
+      })
+
+      const response = await POST(req)
+      expect(response.status).toBe(200)
+
+      const tokenRow = await db.query.resetTokens.findFirst({
+        where: eq(schema.resetTokens.id, 'reset_1'),
+      })
+      expect(tokenRow?.usedAt).toBeTruthy()
+
+      const updatedUser = await db.query.users.findFirst({
+        where: eq(schema.users.id, user.id),
+      })
+      expect(updatedUser?.passwordHash).not.toBe('old_hash')
+    } finally {
+      sqlite.close()
+    }
+  })
+
+  it('register returns 409 EMAIL_TAKEN when email already exists', async () => {
+    const testDb = createTestDb()
+    const { db, sqlite } = testDb
+    try {
+      await seedUser(db, { email: 'dupe@example.com' })
+
+      vi.resetModules()
+      globalThis.__invoicer_db__ = db
+      const { POST } = await import('@/app/api/auth/register/route')
+      const req = new NextRequest('http://localhost/api/auth/register', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Jane',
+          email: 'dupe@example.com',
+          password: 'Password123',
+        }),
+      })
+
+      const response = await POST(req)
+      expect(response.status).toBe(409)
+      const json = await response.json()
+      expect(json.error?.code).toBe('EMAIL_TAKEN')
+    } finally {
+      sqlite.close()
+    }
+  })
+
+  it('login runs scrypt once even when user does not exist (timing-oracle hardening)', async () => {
+    const testDb = createTestDb()
+    const { db, sqlite } = testDb
+    try {
+      vi.resetModules()
+      globalThis.__invoicer_db__ = db
+
+      const crypto = await import('node:crypto')
+      const scryptSpy = vi.spyOn(crypto.default, 'scryptSync')
+      const { POST } = await import('@/app/api/auth/login/route')
+
+      const req = new NextRequest('http://localhost/api/auth/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          email: 'missing@example.com',
+          password: 'Password123',
+        }),
+      })
+
+      const response = await POST(req)
+      expect(response.status).toBe(401)
+      expect(scryptSpy).toHaveBeenCalledTimes(1)
     } finally {
       sqlite.close()
     }

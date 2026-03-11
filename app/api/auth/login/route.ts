@@ -1,18 +1,35 @@
 import { NextRequest } from "next/server";
+import { eq } from "drizzle-orm";
 
-import { handleRouteError, readJsonBody, successResponse, apiError } from "@/lib/api";
+import { apiError, handleRouteError, parseBody, readJsonBody, successResponse } from "@/lib/api";
 import { sanitizeUser, verifyPassword, issueSession, setSessionCookies } from "@/lib/auth";
-import { ensureEmail, ensureString } from "@/lib/validate";
-import { store } from "@/lib/store";
+import { db } from "@/lib/db";
+import { users } from "@/lib/schema";
+import { LoginSchema } from "@/lib/validators";
+
+const DUMMY_PASSWORD_HASH =
+  "da8e2ece4f4f3849bbf0d5d3b306dc9d5add4f13d4f4f9f782f41f3ee3bf2cd8e5af5ea5d90585f6729e2f6fd4e3156c46eda86a9d3801473fd5da39f5d9efc4";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await readJsonBody<Record<string, unknown>>(req);
-    const email = ensureEmail(body.email, "email");
-    const password = ensureString(body.password, "password", 1, 128);
+    const body = await readJsonBody<unknown>(req);
+    const parsed = parseBody(LoginSchema, body);
+    if (!parsed.ok) {
+      return parsed.response;
+    }
 
-    const user = store.users.find((item) => item.email === email);
-    if (!user || !verifyPassword(password, user.passwordHash)) {
+    const user = db
+      .select()
+      .from(users)
+      .where(eq(users.email, parsed.data.email))
+      .get();
+
+    const matched = verifyPassword(
+      parsed.data.password,
+      user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+    );
+
+    if (!user || !matched) {
       apiError(401, "INVALID_CREDENTIALS", "Invalid email or password.");
     }
 
