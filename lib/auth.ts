@@ -1,12 +1,14 @@
 import crypto from "node:crypto";
+import { and, eq, gt, isNull } from "drizzle-orm";
 
 import { NextRequest, NextResponse } from "next/server";
 
 import { apiError } from "@/lib/api";
+import { db } from "@/lib/db";
 import { nowIso } from "@/lib/time";
 import { randomToken, sha256, uuid } from "@/lib/ids";
-import { store } from "@/lib/store";
 import { StoredUser } from "@/lib/models";
+import { accessTokens, refreshTokens, users } from "@/lib/schema";
 
 const ACCESS_COOKIE = "invoicer_access";
 const REFRESH_COOKIE = "invoicer_refresh";
@@ -15,10 +17,6 @@ const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function expiresAfter(ms: number): string {
   return new Date(Date.now() + ms).toISOString();
-}
-
-function parseIsoMs(iso: string): number {
-  return new Date(iso).getTime();
 }
 
 export function hashPassword(password: string): string {
@@ -42,15 +40,23 @@ export function sanitizeUser(user: StoredUser) {
 export function issueSession(userId: string): { accessToken: string; refreshToken: string } {
   const accessToken = `at_${randomToken(24)}`;
   const refreshToken = `rt_${randomToken(32)}`;
+  const issuedAt = nowIso();
 
-  store.accessTokens.push({ token: accessToken, userId, expiresAt: expiresAfter(ACCESS_TTL_MS) });
-  store.refreshTokens.push({
-    id: uuid(),
-    userId,
-    tokenHash: sha256(refreshToken),
-    createdAt: nowIso(),
-    expiresAt: expiresAfter(REFRESH_TTL_MS),
-    usedAt: null,
+  db.transaction((tx) => {
+    tx.insert(accessTokens).values({
+      token: accessToken,
+      userId,
+      expiresAt: expiresAfter(ACCESS_TTL_MS),
+    }).run();
+
+    tx.insert(refreshTokens).values({
+      id: uuid(),
+      userId,
+      tokenHash: sha256(refreshToken),
+      createdAt: issuedAt,
+      expiresAt: expiresAfter(REFRESH_TTL_MS),
+      usedAt: null,
+    }).run();
   });
 
   return { accessToken, refreshToken };
@@ -95,11 +101,21 @@ export function requireAuth(req: NextRequest): StoredUser {
   if (!token) {
     apiError(401, "UNAUTHORIZED", "Authentication required.");
   }
-  const session = store.accessTokens.find((item) => item.token === token);
-  if (!session || parseIsoMs(session.expiresAt) < Date.now()) {
+
+  const session = db
+    .select()
+    .from(accessTokens)
+    .where(and(eq(accessTokens.token, token), gt(accessTokens.expiresAt, nowIso())))
+    .get();
+  if (!session) {
     apiError(401, "UNAUTHORIZED", "Authentication required.");
   }
-  const user = store.users.find((u) => u.id === session.userId);
+
+  const user = db
+    .select()
+    .from(users)
+    .where(eq(users.id, session.userId))
+    .get();
   if (!user) {
     apiError(401, "UNAUTHORIZED", "Authentication required.");
   }
@@ -108,13 +124,31 @@ export function requireAuth(req: NextRequest): StoredUser {
 
 export function rotateRefreshToken(oldRawToken: string): { userId: string; tokens: { accessToken: string; refreshToken: string } } {
   const tokenHash = sha256(oldRawToken);
-  const token = store.refreshTokens.find((item) => item.tokenHash === tokenHash);
+  // REVIEW: This select→update is not atomic. Under concurrent load (multiple server
+  // processes sharing one SQLite file) two requests using the same token could both
+  // pass the usedAt IS NULL check before either write completes, enabling token replay.
+  // Mitigate with a db.transaction() wrapping the select+update+issueSession, or by
+  // using a single UPDATE ... WHERE used_at IS NULL and checking rows-affected = 1.
+  const token = db
+    .select()
+    .from(refreshTokens)
+    .where(
+      and(
+        eq(refreshTokens.tokenHash, tokenHash),
+        isNull(refreshTokens.usedAt),
+        gt(refreshTokens.expiresAt, nowIso()),
+      ),
+    )
+    .get();
 
-  if (!token || token.usedAt || parseIsoMs(token.expiresAt) < Date.now()) {
-    apiError(401, "INVALID_REFRESH_TOKEN", "Refresh token is invalid.");
+  if (!token) {
+    apiError(401, "UNAUTHORIZED", "Authentication required.");
   }
 
-  token.usedAt = nowIso();
+  db.update(refreshTokens)
+    .set({ usedAt: nowIso() })
+    .where(eq(refreshTokens.id, token.id))
+    .run();
 
   const tokens = issueSession(token.userId);
   return { userId: token.userId, tokens };
@@ -125,10 +159,15 @@ export function invalidateRefreshToken(rawToken: string | undefined): void {
     return;
   }
   const tokenHash = sha256(rawToken);
-  const token = store.refreshTokens.find((item) => item.tokenHash === tokenHash);
-  if (token && !token.usedAt) {
-    token.usedAt = nowIso();
-  }
+  db.update(refreshTokens)
+    .set({ usedAt: nowIso() })
+    .where(
+      and(
+        eq(refreshTokens.tokenHash, tokenHash),
+        isNull(refreshTokens.usedAt),
+      ),
+    )
+    .run();
 }
 
 export function getRefreshCookie(req: NextRequest): string {
