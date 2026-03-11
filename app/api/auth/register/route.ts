@@ -1,35 +1,78 @@
 import { NextRequest } from "next/server";
 
-import { actionResponse, handleRouteError, readJsonBody, successResponse, apiError } from "@/lib/api";
-import { createDefaultBusinessProfile } from "@/lib/domain";
+import { actionResponse, apiError, handleRouteError, parseBody, readJsonBody, successResponse } from "@/lib/api";
 import { sanitizeUser, hashPassword, issueSession, setSessionCookies } from "@/lib/auth";
-import { ensureEmail, ensurePassword, ensureString } from "@/lib/validate";
+import { db } from "@/lib/db";
 import { uuid } from "@/lib/ids";
+import { businessProfiles, users } from "@/lib/schema";
 import { nowIso } from "@/lib/time";
-import { store } from "@/lib/store";
+import { RegisterSchema } from "@/lib/validators";
+
+function isSqliteUniqueConstraintError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const maybe = error as { code?: string; message?: string };
+  return (
+    maybe.code === "SQLITE_CONSTRAINT_UNIQUE" ||
+    maybe.code === "SQLITE_CONSTRAINT" ||
+    maybe.message?.includes("UNIQUE constraint failed: users.email") === true
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await readJsonBody<Record<string, unknown>>(req);
-    const name = ensureString(body.name, "name", 1, 100);
-    const email = ensureEmail(body.email, "email");
-    const password = ensurePassword(body.password, "password");
-
-    if (store.users.some((user) => user.email === email)) {
-      apiError(409, "EMAIL_TAKEN", "Email is already registered.");
+    const body = await readJsonBody<unknown>(req);
+    const parsed = parseBody(RegisterSchema, body);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     const now = nowIso();
     const user = {
       id: uuid(),
-      name,
-      email,
-      passwordHash: hashPassword(password),
+      name: parsed.data.name,
+      email: parsed.data.email,
+      passwordHash: hashPassword(parsed.data.password),
       createdAt: now,
       updatedAt: now,
     };
-    store.users.push(user);
-    store.businessProfiles.push(createDefaultBusinessProfile(user.id));
+
+    try {
+      db.transaction((tx) => {
+        tx.insert(users).values(user).run();
+        tx.insert(businessProfiles).values({
+          id: uuid(),
+          userId: user.id,
+          businessName: "",
+          logoUrl: null,
+          addressLine1: null,
+          addressLine2: null,
+          addressCity: null,
+          addressState: null,
+          addressPostalCode: null,
+          addressCountry: null,
+          phone: null,
+          email: null,
+          website: null,
+          taxId: null,
+          defaultCurrency: "USD",
+          defaultPaymentTermsDays: 30,
+          defaultTaxRate: null,
+          defaultNotes: null,
+          defaultTerms: null,
+          invoicePrefix: "INV",
+          nextInvoiceNumber: 1,
+          createdAt: now,
+          updatedAt: now,
+        }).run();
+      });
+    } catch (error) {
+      if (isSqliteUniqueConstraintError(error)) {
+        apiError(409, "EMAIL_TAKEN", "Email is already registered.");
+      }
+      throw error;
+    }
 
     const response = successResponse(sanitizeUser(user), 200);
     setSessionCookies(response, issueSession(user.id));
