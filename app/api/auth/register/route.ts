@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { actionResponse, apiError, handleRouteError, parseBody, readJsonBody, successResponse } from "@/lib/api";
 import { sanitizeUser, hashPassword, issueSession, setSessionCookies } from "@/lib/auth";
 import { db } from "@/lib/db";
+import type { Db } from "@/lib/db";
 import { uuid } from "@/lib/ids";
 import { businessProfiles, users } from "@/lib/schema";
 import { nowIso } from "@/lib/time";
@@ -39,12 +40,12 @@ export async function POST(req: NextRequest) {
     };
 
     try {
-      db.transaction((tx) => {
+      db.transaction((tx: Db) => {
         tx.insert(users).values(user).run();
         tx.insert(businessProfiles).values({
           id: uuid(),
           userId: user.id,
-          businessName: "",
+          businessName: user.name,
           logoUrl: null,
           addressLine1: null,
           addressLine2: null,
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
       throw error;
     }
 
-    const response = successResponse(sanitizeUser(user), 200);
+    const response = successResponse(sanitizeUser(user), 201);
     setSessionCookies(response, issueSession(user.id));
     return response;
   } catch (error) {

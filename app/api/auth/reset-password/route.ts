@@ -1,21 +1,24 @@
 import { NextRequest } from "next/server";
 import { and, eq, gt, isNull } from "drizzle-orm";
 
-import { actionResponse, apiError, handleRouteError, readJsonBody } from "@/lib/api";
+import { actionResponse, apiError, handleRouteError, parseBody, readJsonBody } from "@/lib/api";
 import { hashPassword } from "@/lib/auth";
 import { db } from "@/lib/db";
+import type { Db } from "@/lib/db";
 import { sha256 } from "@/lib/ids";
 import { resetTokens, users } from "@/lib/schema";
-import { ensurePassword, ensureString } from "@/lib/validate";
 import { nowIso } from "@/lib/time";
+import { ResetPasswordSchema } from "@/lib/validators";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await readJsonBody<Record<string, unknown>>(req);
-    const token = ensureString(body.token, "token", 1, 500);
-    const passwordValue = body.newPassword ?? body.password;
-    const newPassword = ensurePassword(passwordValue, body.newPassword !== undefined ? "newPassword" : "password");
-    const tokenHash = sha256(token);
+    const body = await readJsonBody<unknown>(req);
+    const parsed = parseBody(ResetPasswordSchema, body);
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+
+    const tokenHash = sha256(parsed.data.token);
     const now = nowIso();
 
     const activeToken = db
@@ -39,11 +42,11 @@ export async function POST(req: NextRequest) {
       if (tokenRecord?.usedAt) {
         apiError(400, "TOKEN_USED", "Token already used.");
       }
-      apiError(400, "TOKEN_INVALID", "Token is invalid.");
+      apiError(400, "INVALID_TOKEN", "Token is invalid.");
     }
 
-    const updatedPasswordHash = hashPassword(newPassword);
-    db.transaction((tx) => {
+    const updatedPasswordHash = hashPassword(parsed.data.password);
+    db.transaction((tx: Db) => {
       const updatedUsers = tx
         .update(users)
         .set({
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
         .where(eq(users.id, activeToken.userId))
         .run();
       if (!updatedUsers.changes) {
-        apiError(400, "TOKEN_INVALID", "Token is invalid.");
+        apiError(400, "INVALID_TOKEN", "Token is invalid.");
       }
 
       tx.update(resetTokens)

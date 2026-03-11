@@ -215,7 +215,7 @@ describe('Auth route review regression tests', () => {
       const req = new NextRequest('http://localhost/api/auth/reset-password', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token: suppliedRawToken, newPassword: 'NewPassword123' }),
+        body: JSON.stringify({ token: suppliedRawToken, password: 'NewPassword123' }),
       })
 
       const response = await POST(req)

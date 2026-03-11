@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { apiError } from "@/lib/api";
 import { db } from "@/lib/db";
+import type { Db } from "@/lib/db";
 import { nowIso } from "@/lib/time";
 import { randomToken, sha256, uuid } from "@/lib/ids";
 import { StoredUser } from "@/lib/models";
@@ -42,7 +43,7 @@ export function issueSession(userId: string): { accessToken: string; refreshToke
   const refreshToken = `rt_${randomToken(32)}`;
   const issuedAt = nowIso();
 
-  db.transaction((tx) => {
+  db.transaction((tx: Db) => {
     tx.insert(accessTokens).values({
       token: accessToken,
       userId,
