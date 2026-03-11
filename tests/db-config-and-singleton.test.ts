@@ -13,10 +13,11 @@ describe('drizzle config (F2)', () => {
 })
 
 describe('db singleton contract (F4)', () => {
-  it('exports createDb factory and db singleton', async () => {
+  it('exports createDb factory, syncDb helper, and db singleton', async () => {
     const mod = await import('@/lib/db')
 
     expect(typeof mod.createDb).toBe('function')
+    expect(typeof mod.syncDb).toBe('function')
     expect(mod.db).toBeDefined()
   })
 })
