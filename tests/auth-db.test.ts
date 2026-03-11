@@ -136,4 +136,45 @@ describe('F7 auth DB migration tests', () => {
       sqlite.close()
     }
   })
+
+  it('rotateRefreshToken rejects a refresh token that has already been used (replay attack)', async () => {
+    const { db, sqlite, auth } = await loadAuthWithTestDb()
+    try {
+      const user = await seedUser(db)
+      const first = auth.issueSession(user.id)
+
+      // First rotation succeeds
+      auth.rotateRefreshToken(first.refreshToken)
+
+      // Second use of the same token must throw
+      expect(() => auth.rotateRefreshToken(first.refreshToken)).toThrow()
+    } finally {
+      sqlite.close()
+    }
+  })
+
+  it('invalidateRefreshToken marks the token used so it cannot be rotated again', async () => {
+    const { db, sqlite, auth } = await loadAuthWithTestDb()
+    try {
+      const user = await seedUser(db)
+      const { refreshToken } = auth.issueSession(user.id)
+
+      auth.invalidateRefreshToken(refreshToken)
+
+      // Token must now be rejected
+      expect(() => auth.rotateRefreshToken(refreshToken)).toThrow()
+    } finally {
+      sqlite.close()
+    }
+  })
+
+  it('invalidateRefreshToken is a no-op for undefined input', async () => {
+    const { sqlite, auth } = await loadAuthWithTestDb()
+    try {
+      // Must not throw
+      expect(() => auth.invalidateRefreshToken(undefined)).not.toThrow()
+    } finally {
+      sqlite.close()
+    }
+  })
 })
