@@ -42,20 +42,22 @@ export function issueSession(userId: string): { accessToken: string; refreshToke
   const refreshToken = `rt_${randomToken(32)}`;
   const issuedAt = nowIso();
 
-  db.insert(accessTokens).values({
-    token: accessToken,
-    userId,
-    expiresAt: expiresAfter(ACCESS_TTL_MS),
-  }).run();
+  db.transaction((tx) => {
+    tx.insert(accessTokens).values({
+      token: accessToken,
+      userId,
+      expiresAt: expiresAfter(ACCESS_TTL_MS),
+    }).run();
 
-  db.insert(refreshTokens).values({
-    id: uuid(),
-    userId,
-    tokenHash: sha256(refreshToken),
-    createdAt: issuedAt,
-    expiresAt: expiresAfter(REFRESH_TTL_MS),
-    usedAt: null,
-  }).run();
+    tx.insert(refreshTokens).values({
+      id: uuid(),
+      userId,
+      tokenHash: sha256(refreshToken),
+      createdAt: issuedAt,
+      expiresAt: expiresAfter(REFRESH_TTL_MS),
+      usedAt: null,
+    }).run();
+  });
 
   return { accessToken, refreshToken };
 }
@@ -122,6 +124,11 @@ export function requireAuth(req: NextRequest): StoredUser {
 
 export function rotateRefreshToken(oldRawToken: string): { userId: string; tokens: { accessToken: string; refreshToken: string } } {
   const tokenHash = sha256(oldRawToken);
+  // REVIEW: This select→update is not atomic. Under concurrent load (multiple server
+  // processes sharing one SQLite file) two requests using the same token could both
+  // pass the usedAt IS NULL check before either write completes, enabling token replay.
+  // Mitigate with a db.transaction() wrapping the select+update+issueSession, or by
+  // using a single UPDATE ... WHERE used_at IS NULL and checking rows-affected = 1.
   const token = db
     .select()
     .from(refreshTokens)
