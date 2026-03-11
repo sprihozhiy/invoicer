@@ -18,6 +18,12 @@ export async function POST(req: NextRequest) {
     }
     const { name, email, password } = parsed.data;
 
+    // REVIEW: TOCTOU race — two concurrent requests with the same email can both
+    // pass this SELECT check before either INSERT completes. SQLite will catch the
+    // unique constraint violation on `users.email`, but handleRouteError maps
+    // non-ApiError exceptions to 500 rather than 409. Fix: catch the SQLITE
+    // constraint error (error.code === 'SQLITE_CONSTRAINT_UNIQUE') and re-throw as
+    // apiError(409, 'EMAIL_TAKEN', ...).
     const existingUser = db
       .select({ id: users.id })
       .from(users)

@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { actionResponse, apiError, handleRouteError, readJsonBody, parseBody } from "@/lib/api";
 import { hashPassword } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sha256 } from "@/lib/ids";
 import { ResetPasswordSchema } from "@/lib/validators";
 import { resetTokens, users } from "@/lib/schema";
 import { nowIso } from "@/lib/time";
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
       .from(resetTokens)
       .where(
         and(
-          eq(resetTokens.rawToken, token),
+          eq(resetTokens.tokenHash, sha256(token)),
           isNull(resetTokens.usedAt),
           gt(resetTokens.expiresAt, now),
         ),

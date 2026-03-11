@@ -21,6 +21,10 @@ export async function POST(req: NextRequest) {
       .from(users)
       .where(eq(users.email, email))
       .get();
+    // REVIEW: Timing oracle — short-circuit on `!user` skips verifyPassword (slow scrypt),
+    // making it measurably faster for non-existent emails vs wrong-password attempts.
+    // An attacker can enumerate valid addresses via response-time differences.
+    // Fix: always call verifyPassword (against a dummy hash) when user is not found.
     if (!user || !verifyPassword(password, user.passwordHash)) {
       apiError(401, "INVALID_CREDENTIALS", "Invalid email or password.");
     }

@@ -124,6 +124,11 @@ export function requireAuth(req: NextRequest): StoredUser {
 
 export function rotateRefreshToken(oldRawToken: string): { userId: string; tokens: { accessToken: string; refreshToken: string } } {
   const tokenHash = sha256(oldRawToken);
+  // REVIEW: This select→update is not atomic. Under concurrent load (multiple server
+  // processes sharing one SQLite file) two requests using the same token could both
+  // pass the usedAt IS NULL check before either write completes, enabling token replay.
+  // Mitigate with a db.transaction() wrapping the select+update+issueSession, or by
+  // using a single UPDATE ... WHERE used_at IS NULL and checking rows-affected = 1.
   const token = db
     .select()
     .from(refreshTokens)
