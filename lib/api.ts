@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { ZodSchema } from "zod";
 
 const MAX_JSON_REQUEST_BYTES = 1024 * 1024;
 const MAX_JSON_RESPONSE_BYTES = 1024 * 1024;
@@ -102,4 +103,25 @@ export function handleRouteError(error: unknown): NextResponse<ApiErrorBody> {
     return errorResponse(error.status, error.code, error.message, error.field, error.details);
   }
   return errorResponse(500, "INTERNAL_SERVER_ERROR", "An unexpected error occurred.");
+}
+
+export function parseBody<T>(
+  schema: ZodSchema<T>,
+  body: unknown,
+): { ok: true; data: T } | { ok: false; response: NextResponse<ApiErrorBody> } {
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    return {
+      ok: false,
+      response: errorResponse(
+        400,
+        "VALIDATION_ERROR",
+        "Invalid input.",
+        undefined,
+        result.error.flatten().fieldErrors,
+      ),
+    };
+  }
+
+  return { ok: true, data: result.data };
 }
