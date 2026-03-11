@@ -1,17 +1,26 @@
 import { NextRequest } from "next/server";
+import { eq } from "drizzle-orm";
 
-import { handleRouteError, readJsonBody, successResponse, apiError } from "@/lib/api";
+import { handleRouteError, readJsonBody, successResponse, apiError, parseBody } from "@/lib/api";
 import { sanitizeUser, verifyPassword, issueSession, setSessionCookies } from "@/lib/auth";
-import { ensureEmail, ensureString } from "@/lib/validate";
-import { store } from "@/lib/store";
+import { db } from "@/lib/db";
+import { LoginSchema } from "@/lib/validators";
+import { users } from "@/lib/schema";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await readJsonBody<Record<string, unknown>>(req);
-    const email = ensureEmail(body.email, "email");
-    const password = ensureString(body.password, "password", 1, 128);
+    const body = await readJsonBody<unknown>(req);
+    const parsed = parseBody(LoginSchema, body);
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+    const { email, password } = parsed.data;
 
-    const user = store.users.find((item) => item.email === email);
+    const user = db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .get();
     if (!user || !verifyPassword(password, user.passwordHash)) {
       apiError(401, "INVALID_CREDENTIALS", "Invalid email or password.");
     }

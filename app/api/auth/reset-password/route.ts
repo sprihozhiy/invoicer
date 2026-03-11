@@ -1,37 +1,55 @@
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { NextRequest } from "next/server";
 
-import { actionResponse, apiError, handleRouteError, readJsonBody } from "@/lib/api";
+import { actionResponse, apiError, handleRouteError, readJsonBody, parseBody } from "@/lib/api";
 import { hashPassword } from "@/lib/auth";
-import { sha256 } from "@/lib/ids";
-import { store } from "@/lib/store";
-import { ensurePassword, ensureString } from "@/lib/validate";
+import { db } from "@/lib/db";
+import { ResetPasswordSchema } from "@/lib/validators";
+import { resetTokens, users } from "@/lib/schema";
 import { nowIso } from "@/lib/time";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await readJsonBody<Record<string, unknown>>(req);
-    const token = ensureString(body.token, "token", 1, 500);
-    const newPassword = ensurePassword(body.newPassword, "newPassword");
+    const body = await readJsonBody<unknown>(req);
+    const parsed = parseBody(ResetPasswordSchema, body);
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+    const { token, password } = parsed.data;
+    const now = nowIso();
 
-    const record = store.passwordResetTokens.find((item) => item.tokenHash === sha256(token));
+    const record = db
+      .select()
+      .from(resetTokens)
+      .where(
+        and(
+          eq(resetTokens.rawToken, token),
+          isNull(resetTokens.usedAt),
+          gt(resetTokens.expiresAt, now),
+        ),
+      )
+      .get();
     if (!record) {
-      apiError(400, "TOKEN_INVALID", "Token is invalid.");
-    }
-    if (record.usedAt) {
-      apiError(400, "TOKEN_USED", "Token already used.");
-    }
-    if (new Date(record.expiresAt).getTime() < Date.now()) {
-      apiError(400, "TOKEN_INVALID", "Token is invalid.");
+      apiError(400, "INVALID_TOKEN", "Token is invalid or expired.");
     }
 
-    const user = store.users.find((item) => item.id === record.userId);
-    if (!user) {
-      apiError(400, "TOKEN_INVALID", "Token is invalid.");
-    }
+    db.transaction((tx) => {
+      const updateUserResult = tx.update(users)
+        .set({
+          passwordHash: hashPassword(password),
+          updatedAt: nowIso(),
+        })
+        .where(eq(users.id, record.userId))
+        .run();
+      if (updateUserResult.changes === 0) {
+        apiError(400, "INVALID_TOKEN", "Token is invalid or expired.");
+      }
 
-    user.passwordHash = hashPassword(newPassword);
-    user.updatedAt = nowIso();
-    record.usedAt = nowIso();
+      tx.update(resetTokens)
+        .set({ usedAt: nowIso() })
+        .where(eq(resetTokens.id, record.id))
+        .run();
+    });
 
     return actionResponse(200);
   } catch (error) {

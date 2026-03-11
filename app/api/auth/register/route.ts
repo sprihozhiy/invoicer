@@ -1,21 +1,29 @@
 import { NextRequest } from "next/server";
+import { eq } from "drizzle-orm";
 
-import { actionResponse, handleRouteError, readJsonBody, successResponse, apiError } from "@/lib/api";
-import { createDefaultBusinessProfile } from "@/lib/domain";
+import { handleRouteError, readJsonBody, successResponse, apiError, parseBody } from "@/lib/api";
 import { sanitizeUser, hashPassword, issueSession, setSessionCookies } from "@/lib/auth";
-import { ensureEmail, ensurePassword, ensureString } from "@/lib/validate";
 import { uuid } from "@/lib/ids";
+import { db } from "@/lib/db";
+import { RegisterSchema } from "@/lib/validators";
+import { businessProfiles, users } from "@/lib/schema";
 import { nowIso } from "@/lib/time";
-import { store } from "@/lib/store";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await readJsonBody<Record<string, unknown>>(req);
-    const name = ensureString(body.name, "name", 1, 100);
-    const email = ensureEmail(body.email, "email");
-    const password = ensurePassword(body.password, "password");
+    const body = await readJsonBody<unknown>(req);
+    const parsed = parseBody(RegisterSchema, body);
+    if (!parsed.ok) {
+      return parsed.response;
+    }
+    const { name, email, password } = parsed.data;
 
-    if (store.users.some((user) => user.email === email)) {
+    const existingUser = db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .get();
+    if (existingUser) {
       apiError(409, "EMAIL_TAKEN", "Email is already registered.");
     }
 
@@ -28,17 +36,39 @@ export async function POST(req: NextRequest) {
       createdAt: now,
       updatedAt: now,
     };
-    store.users.push(user);
-    store.businessProfiles.push(createDefaultBusinessProfile(user.id));
+    db.transaction((tx) => {
+      tx.insert(users).values(user).run();
+      tx.insert(businessProfiles).values({
+        id: uuid(),
+        userId: user.id,
+        businessName: user.name,
+        logoUrl: null,
+        addressLine1: null,
+        addressLine2: null,
+        addressCity: null,
+        addressState: null,
+        addressPostalCode: null,
+        addressCountry: null,
+        phone: null,
+        email: null,
+        website: null,
+        taxId: null,
+        defaultCurrency: "USD",
+        defaultPaymentTermsDays: 30,
+        defaultTaxRate: null,
+        defaultNotes: null,
+        defaultTerms: null,
+        invoicePrefix: "INV",
+        nextInvoiceNumber: 1,
+        createdAt: now,
+        updatedAt: now,
+      }).run();
+    });
 
-    const response = successResponse(sanitizeUser(user), 200);
+    const response = successResponse(sanitizeUser(user), 201);
     setSessionCookies(response, issueSession(user.id));
     return response;
   } catch (error) {
     return handleRouteError(error);
   }
-}
-
-export function GET() {
-  return actionResponse(405);
 }
