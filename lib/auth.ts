@@ -7,7 +7,6 @@ import { apiError } from "@/lib/api";
 import { db } from "@/lib/db";
 import { nowIso } from "@/lib/time";
 import { randomToken, sha256, uuid } from "@/lib/ids";
-import { store } from "@/lib/store";
 import { StoredUser } from "@/lib/models";
 import { accessTokens, refreshTokens, users } from "@/lib/schema";
 
@@ -136,7 +135,7 @@ export function rotateRefreshToken(oldRawToken: string): { userId: string; token
     .get();
 
   if (!token) {
-    apiError(401, "INVALID_REFRESH_TOKEN", "Refresh token is invalid.");
+    apiError(401, "UNAUTHORIZED", "Authentication required.");
   }
 
   db.update(refreshTokens)
@@ -153,10 +152,15 @@ export function invalidateRefreshToken(rawToken: string | undefined): void {
     return;
   }
   const tokenHash = sha256(rawToken);
-  const token = store.refreshTokens.find((item) => item.tokenHash === tokenHash);
-  if (token && !token.usedAt) {
-    token.usedAt = nowIso();
-  }
+  db.update(refreshTokens)
+    .set({ usedAt: nowIso() })
+    .where(
+      and(
+        eq(refreshTokens.tokenHash, tokenHash),
+        isNull(refreshTokens.usedAt),
+      ),
+    )
+    .run();
 }
 
 export function getRefreshCookie(req: NextRequest): string {
