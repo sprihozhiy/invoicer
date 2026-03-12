@@ -1,0 +1,12 @@
+YOLO mode is enabled. All tool calls will be automatically approved.
+Loaded cached credentials.
+YOLO mode is enabled. All tool calls will be automatically approved.
+Loading extension: Stitch
+Model set to gemini-3.1-pro-preview
+I have successfully created all three files according to your requirements:
+
+1.  **`design-brief.md`**: Contains the shared, dark-themed design system specifying the color tokens, typography scale, spacing system, component variants, and layout/responsive breakpoints that unify both prototypes.
+2.  **`landing-prototype.html`**: A complete marketing website mockup using plain HTML/CSS with modern spacing, clear CTAs, features, pricing section, and a dashboard preview abstraction.
+3.  **`app-prototype.html`**: A comprehensive in-app UI mockup that covers all the required screens outlined in the functional spec (Login, Dashboard, Invoice List, Invoice Detail, New Invoice Form, Clients List, Settings, and an Empty State). It includes a simple vanilla JS toggle in the top right to let you switch between and review all the screen states seamlessly.
+
+Both prototypes follow the premium dark UI aesthetic with no external dependencies (aside from the Inter font from Google Fonts), using inline SVGs for icons and utilizing robust CSS custom properties for coherent theming.
