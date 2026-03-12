@@ -1,171 +1,122 @@
-# Invoicer: Design System & Brand Guidelines
+# Design Brief: Invoicer
 
-This document outlines the design system for the Invoicer SaaS application, covering both marketing and in-app interfaces. The aesthetic is modern, professional, and minimalist, built on a premium dark theme.
+## 1. Overview & Philosophy
 
----
+This document outlines the design system for the Invoicer application and its marketing website. The guiding philosophy is to combine the design polish and intuitive user experience of a premium product like FreshBooks with a generous, accessible feature set.
 
-## 1. Aesthetic Goals
+The brand is professional, modern, and trustworthy. The UI should feel effortless, enabling freelancers and small business owners to manage their finances with confidence. We prioritize clarity, consistency, and a calm, focused user experience.
 
-- **Modern & Professional:** The UI should feel current, clean, and trustworthy, reinforcing the idea that our users can create professional-grade documents.
-- **Minimalist:** We prioritize clarity and ease of use. Every element should have a purpose. We avoid visual clutter.
-- **Breathable:** We use generous white space (negative space) through padding and margins to create a calm, uncluttered, and premium feel.
-- **Action-Oriented:** The design should guide the user towards primary actions like "New Invoice" or "Record Payment" with clear visual hierarchy.
+## 2. Color System
 
----
+The color palette is minimal and purposeful, built around a primary accent color and a set of neutral grays. This ensures that important information and actions are always clear. All colors are defined as CSS variables for easy theming and maintenance, adhering to the Tailwind v4 approach.
 
-## 2. Color Palette (Dark Mode)
-
-The entire product uses a single dark mode theme. All color combinations meet WCAG AA contrast standards.
-
-| Role | Hex | Usage |
-|---|---|---|
-| **Backgrounds** | | |
-| `bg-primary` | `#0F0F0F` | Main page background for both marketing and app. |
-| `bg-surface` | `#1A1A1A` | Cards, panels, sidebars, and main content areas. |
-| `bg-elevated` | `#242424` | Modals, dropdowns, popovers, and input fields. |
-| `bg-hover` | `#2E2E2E` | Hover state for list items and interactive neutral surfaces. |
-| **Text** | | |
-| `text-primary` | `#F5F5F5` | Headings and primary body content. |
-| `text-secondary`| `#A0A0A0` | Subheadings, secondary body content, and descriptive text. |
-| `text-muted` | `#6B6B6B` | Helper text, disabled states, and placeholder text. |
-| **Borders** | | |
-| `border-primary`| `#2E2E2E` | Default border for cards, inputs, and layout divisions. |
-| `border-focus` | `#6366F1` | Border color for focused interactive elements (see Accent). |
-| **Accent (Indigo)** | | |
-| `accent-primary`| `#6366F1` | Primary CTAs, links, focus rings, and key icons. |
-| `accent-hover` | `#818CF8` | Hover state for accent-colored elements. |
-| `accent-active` | `#4F46E5` | Pressed/active state for accent-colored elements. |
-| `accent-text` | `#FFFFFF` | Text color on top of `accent-primary` backgrounds. |
-| **Semantic Colors** | | |
-| `success-fg` | `#22C55E` | "Paid" status, success messages. |
-| `success-bg` | `#052E16` | Background for "Paid" status badge. |
-| `warning-fg` | `#F59E0B` | "Partial" status, warning messages. |
-| `warning-bg` | `#431407` | Background for "Partial" status badge. |
-| `danger-fg` | `#EF4444` | "Overdue" status, error messages, delete/void actions. |
-| `danger-bg` | `#450A0A` | Background for "Overdue" status badge. |
-| `info-fg` | `#6366F1` | "Sent" status, informational messages (re-uses accent). |
-| `info-bg` | `#1E1B4B` | Background for "Sent" status badge. |
-| `neutral-fg` | `#A0A0A0` | "Draft" status. |
-| `neutral-bg` | `#1C1C1C` | Background for "Draft" status badge. |
-| `void-fg` | `#6B6B6B` | "Void" status. |
-| `void-bg` | `#171717` | Background for "Void" status badge. |
-
----
+| Role | CSS Variable | Hex | Usage |
+|---|---|---|---|
+| **Primary Accent** | `--accent-primary` | `#4F46E5` | Main CTAs, links, active states, key metrics. |
+| **Primary Accent (Hover)** | `--accent-primary-hover` | `#4338CA` | Hover state for primary elements. |
+| **Primary Accent (Muted)** | `--accent-muted` | `#EEF2FF` | Backgrounds for highlighted sections, subtle accents. |
+| **Neutral (Text)** | `--text-primary` | `#111827` | Body copy, headlines. |
+| **Neutral (Text Secondary)** | `--text-secondary` | `#6B7280` | Subheadings, labels, secondary info. |
+| **Neutral (Border)** | `--border-primary` | `#D1D5DB` | Borders for inputs, cards, dividers. |
+| **Neutral (Border Hover)** | `--border-hover` | `#9CA3AF` | Hover state for bordered elements. |
+| **Neutral (Background)** | `--bg-primary` | `#FFFFFF` | Main background for pages and cards. |
+| **Neutral (Background Alt)** | `--bg-secondary` | `#F9FAFB` | Alternate, slightly darker background. |
+| **Success** | `--status-success` | `#10B981` | Paid, successful actions. |
+| **Warning** | `--status-warning` | `#F59E0B` | Partial, pending. |
+| **Danger** | `--status-danger` | `#EF4444` | Overdue, errors, destructive actions. |
+| **Info** | `--status-info` | `#3B82F6` | Draft, informational messages. |
 
 ## 3. Typography
 
-- **Font:** Inter (sans-serif). Sourced from Google Fonts. It offers excellent readability at all sizes.
-- **Weights:** Regular (400), Medium (500), SemiBold (600), Bold (700).
+The typographic scale is designed for clarity and hierarchy on both marketing and app pages. We use a single, modern, sans-serif font for all text.
 
-| Element | Font Size (px) | Font Weight | Line Height | Letter Spacing | Usage |
-|---|---|---|---|---|---|
-| Display | 60 | Bold (700) | 1.2 | -0.02em | Marketing hero title. |
-| Heading 1 | 48 | Bold (700) | 1.2 | -0.02em | Marketing section heads, App page titles. |
-| Heading 2 | 36 | SemiBold (600) | 1.3 | -0.01em | Sub-sections, large modal titles. |
-| Heading 3 | 24 | SemiBold (600) | 1.4 | 0 | Card titles, feature titles. |
-| Heading 4 | 20 | Medium (500) | 1.5 | 0 | Minor headings. |
-| Body (Lg) | 18 | Regular (400) | 1.6 | 0 | Marketing body copy. |
-| Body (Md) | 16 | Regular (400) | 1.6 | 0 | App body copy, form inputs. |
-| Body (Sm) | 14 | Regular (400) | 1.5 | 0 | Table text, helper text, metadata. |
-| Label | 12 | Medium (500) | 1.0 | 0.01em | Form labels, status badges, uppercase tags. |
+*   **Font Family:** `Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`
 
----
+| Element | Font Size | Font Weight | Line Height | Usage |
+|---|---|---|---|---|
+| Display | 3rem (48px) | 700 | 1.2 | Main hero headline on landing page. |
+| H1 | 2.25rem (36px) | 700 | 1.25 | Page titles, major section headers. |
+| H2 | 1.5rem (24px) | 700 | 1.3 | Sub-section headers. |
+| H3 | 1.25rem (20px) | 600 | 1.4 | Card titles, minor headers. |
+| H4 | 1rem (16px) | 600 | 1.5 | Small titles, bold labels. |
+| Body (Large) | 1.125rem (18px) | 400 | 1.6 | Landing page body copy. |
+| Body | 1rem (16px) | 400 | 1.5 | Main application text, paragraphs. |
+| Small | 0.875rem (14px) | 400 | 1.4 | Form labels, table headers, metadata. |
+| Tiny | 0.75rem (12px) | 500 | 1.3 | Badges, utility text. |
 
-## 4. Spacing
+## 4. Spacing & Layout
 
-A 4-point grid system is used for all spacing (margins, padding, gaps).
+A consistent 4px-based spacing scale is used for all padding, margins, and gaps. This creates a harmonious rhythm and visual consistency.
 
-| Token | Value (px) | Usage |
-|---|---|---|
-| `space-1` | 4 | |
-| `space-2` | 8 | |
-| `space-3` | 12 | |
-| `space-4` | 16 | Standard padding inside components. |
-| `space-5` | 20 | |
-| `space-6` | 24 | Padding for larger components (cards, modals). |
-| `space-8` | 32 | Gap between components. |
-| `space-10` | 40 | |
-| `space-12` | 48 | |
-| `space-16` | 64 | Gap between page sections. |
-| `space-24` | 96 | Large vertical gap for marketing pages. |
-| `space-32` | 128 | |
+*   **Base Unit:** 4px
+*   **Scale:** `4px, 8px, 12px, 16px, 24px, 32px, 48px, 64px, 96px`
 
----
+**Layout Principles:**
+*   **Max Width:** Content on marketing pages is constrained to `1280px`. App content is fluid within the main content area.
+*   **Gutters:** A standard `24px` gutter is used between major layout elements.
+*   **App Shell:** The application uses a responsive sidebar layout. The sidebar is visible on desktop and collapses to a mobile-friendly menu on smaller screens. The main content area has `32px` padding.
 
-## 5. Icons (Lucide)
+## 5. Component System
 
-- **Library:** [Lucide](https://lucide.dev/)
-- **Source:** CDN - `https://unpkg.com/lucide@latest`
-- **Implementation:** Icons are injected using JavaScript (`lucide.createIcons()`).
-- **Standard Stroke Width:** `1.5px` for a thin, modern feel.
-- **Sizing:**
-  - **Navigation / UI:** `18px` (e.g., sidebar, buttons, table actions).
-  - **Feature / Hero:** `24px` (e.g., feature lists on marketing pages).
-  - **Decorative:** Sizes may vary, but should not exceed `48px`.
-- **Color:** Icons should inherit color via `currentColor` to match parent text color (e.g., `text-secondary` for a gray icon).
+Components are the building blocks of the UI. They are designed to be reusable, accessible, and consistent.
 
----
+### Buttons
 
-## 6. Layout & Breakpoints
+| Variant | Background | Text Color | Border | Usage |
+|---|---|---|---|---|
+| **Primary** | `var(--accent-primary)` | `white` | None | Main CTAs (e.g., "New Invoice", "Save"). |
+| **Secondary** | `var(--bg-primary)` | `var(--text-primary)` | `var(--border-primary)` | Secondary actions (e.g., "Cancel", "Export"). |
+| **Danger** | `var(--status-danger)` | `white` | None | Destructive actions (e.g., "Delete", "Void"). |
+| **Link** | `transparent` | `var(--accent-primary)` | None | Tertiary actions, inline links. |
 
-- **Breakpoints:**
-  - **Mobile:** `375px` (Base styles)
-  - **Tablet:** `768px` (min-width)
-  - **Desktop:** `1440px` (min-width)
-- **Container:**
-  - A centered container with a `max-width` of `1280px` is used for both app and marketing pages on desktop.
-  - Padding: `24px` on mobile, `48px` on tablet/desktop.
-- **Marketing Page Layout:**
-  - Full-width sections with centered content containers.
-  - Responsive grids for feature lists and pricing tables.
-- **App Layout:**
-  - **Desktop:** A fixed vertical sidebar (`240px` width) with main content area.
-  - **Tablet/Mobile:** The sidebar collapses into a hamburger-menu-driven drawer or a top navigation bar.
+*   **Interaction:** Buttons have a subtle scale transform (`scale(0.98)`) on press and a darker background/border on hover.
+*   **States:** Disabled state has `opacity: 0.5` and `cursor: not-allowed`.
 
----
+### Form Fields
 
-## 7. Component Patterns
+*   **Appearance:** Inputs have a `1px` border (`var(--border-primary)`), a `var(--bg-primary)` background, and `12px` padding.
+*   **States:**
+    *   **Focus:** Border color changes to `var(--accent-primary)` with a subtle box-shadow.
+    *   **Error:** Border color changes to `var(--status-danger)`. An error message is displayed below the input.
+*   **Labels:** Labels use "Small" typography and are placed above their corresponding input.
 
-- **Buttons:**
-  - **Primary:** `accent-primary` background, `accent-text` color.
-  - **Secondary:** `bg-elevated` background, `text-primary` color.
-  - **Destructive:** Transparent background, `danger-fg` border and text.
-  - **Padding:** `12px 20px` for standard buttons.
-  - **Radius:** `8px`.
-  - **Focus:** `2px` solid `accent-primary` ring with a `2px` transparent offset.
+### Cards
 
-- **Forms:**
-  - **Inputs/Textareas:** `bg-elevated` background, `border-primary` border. On focus, border becomes `border-focus`. `16px` font size. `12px 16px` padding.
-  - **Labels:** `12px` font size, `text-secondary` color, placed `8px` above the input.
-  - **Selects:** Styled to match inputs, with a chevron icon from Lucide (`chevron-down`).
+*   **Appearance:** Cards have a `var(--bg-primary)` background, `1px` border (`var(--border-primary)`), and rounded corners (`8px`). They use a soft box-shadow for depth.
+*   **Padding:** Standard card padding is `24px`.
 
-- **Cards:**
-  - **Background:** `bg-surface`.
-  - **Border:** `1px solid border-primary`.
-  - **Radius:** `12px`.
-  - **Padding:** `24px`.
+### Modals
 
-- **Modals:**
-  - **Overlay:** `rgba(0, 0, 0, 0.7)`.
-  - **Dialog:** `bg-elevated` background, `16px` radius, `32px` padding.
-  - **Sizing:** Max width `500px` on desktop.
+*   **Appearance:** Modals appear centered on the screen with a dark, semi-transparent backdrop. They use the same styling as Cards.
+*   **Behavior:** Modals are dismissible by clicking the backdrop or an explicit "Close" / "Cancel" button.
 
-- **Tables:**
-  - No outer border. Rows are separated by a `1px solid border-primary` line.
-  - Header: `12px` uppercase `text-secondary`.
-  - Body: `14px` `text-primary`.
-  - Row Hover: `bg-hover`.
+### Status Badges
 
----
+*   **Appearance:** Small, pill-shaped badges with soft background colors derived from the status palette.
+*   **Styling:**
+    *   **Paid/Success:** `background-color: var(--status-success); color: white;`
+    *   **Partial/Warning:** `background-color: var(--status-warning); color: white;`
+    *   **Overdue/Danger:** `background-color: var(--status-danger); color: white;`
+    *   **Draft/Info:** `background-color: var(--status-info); color: white;`
 
-## 8. Animation
+## 6. Responsiveness
 
-- **Timing Function:** `cubic-bezier(0.4, 0, 0.2, 1)` for most transitions.
-- **Duration:** `200ms` for fast feedback (hovers), `300ms` for transitions (modals, drawers).
-- **Marketing Page Animations:**
-  - **Hero:** Staggered fade-in/slide-up animation for headline, sub-headline, and CTA.
-  - **Scroll Reveal:** Elements (feature cards, testimonials) fade in and slide up slightly as they enter the viewport.
-- **App Animations:**
-  - Subtle fade-in for page content on navigation.
-  - Modal/Drawer entrance/exit animations (scale and fade for modals, slide for drawers).
-  - List item animations on add/remove (fade and height transition).
+The design is fully responsive and optimized for both desktop and mobile experiences.
+
+*   **Breakpoints:**
+    *   **Mobile:** `< 768px`
+    *   **Tablet:** `768px - 1024px`
+    *   **Desktop:** `> 1024px`
+*   **Mobile Strategy:**
+    *   App sidebar collapses into a hamburger menu.
+    *   Data tables become a stack of card-like rows.
+    *   Typography and spacing are scaled down appropriately.
+    *   Marketing page sections stack vertically.
+
+## 7. Interaction & Motion
+
+Motion is used sparingly to enhance the user experience, not distract from it.
+*   **Timing:** `150ms` ease-in-out for most transitions (color, transform).
+*   **Feedback:** Interactive elements provide clear visual feedback on hover, focus, and active states.
+*   **Loading States:** Skeletons or spinners are used to indicate loading content, preventing layout shift.
+*   **Empty States:** Empty pages (e.g., no invoices) will feature a clean illustration and a clear call-to-action to guide the user's next step.
