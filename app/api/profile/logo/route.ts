@@ -1,8 +1,11 @@
 import { NextRequest } from "next/server";
+import { eq } from "drizzle-orm";
 
 import { actionResponse, apiError, handleRouteError, successResponse } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
 import { getBusinessProfile } from "@/lib/domain";
+import { db } from "@/lib/db";
+import { businessProfiles } from "@/lib/schema";
 import { nowIso } from "@/lib/time";
 import { randomToken } from "@/lib/ids";
 
@@ -29,10 +32,15 @@ export async function POST(req: NextRequest) {
     }
 
     const ext = file.type === "image/png" ? "png" : "jpg";
-    profile.logoUrl = `https://cdn.invoicer.local/logos/${user.id}/${randomToken(10)}.${ext}`;
-    profile.updatedAt = nowIso();
+    const logoUrl = `https://cdn.invoicer.local/logos/${user.id}/${randomToken(10)}.${ext}`;
+    const updatedAt = nowIso();
 
-    return successResponse({ logoUrl: profile.logoUrl }, 200);
+    db.update(businessProfiles)
+      .set({ logoUrl, updatedAt })
+      .where(eq(businessProfiles.userId, user.id))
+      .run();
+
+    return successResponse({ logoUrl }, 200);
   } catch (error) {
     return handleRouteError(error);
   }
@@ -41,9 +49,14 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const user = requireAuth(req);
-    const profile = getBusinessProfile(user.id);
-    profile.logoUrl = null;
-    profile.updatedAt = nowIso();
+    // Verify the profile exists before clearing
+    getBusinessProfile(user.id);
+
+    db.update(businessProfiles)
+      .set({ logoUrl: null, updatedAt: nowIso() })
+      .where(eq(businessProfiles.userId, user.id))
+      .run();
+
     return actionResponse(200);
   } catch (error) {
     return handleRouteError(error);

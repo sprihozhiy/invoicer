@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { apiError, handleRouteError } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
-import { getBusinessProfile } from "@/lib/domain";
+import { getBusinessProfile, requireClientOwned, requireInvoiceOwned } from "@/lib/domain";
 import { withComputedStatus } from "@/lib/invoices";
 import { generateInvoicePdf } from "@/lib/pdf";
 import { safeFetch } from "@/lib/security";
 import { ensureUuid } from "@/lib/validate";
-import { store } from "@/lib/store";
 
 export const runtime = "nodejs";
 
@@ -17,19 +16,13 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const { id } = await context.params;
     const invoiceId = ensureUuid(id, "id");
 
-    const invoice = store.invoices.find((item) => item.id === invoiceId && item.userId === user.id && item.deletedAt === null);
-    if (!invoice) {
-      apiError(404, "NOT_FOUND", "Invoice not found.");
-    }
+    const invoice = requireInvoiceOwned(user.id, invoiceId);
     if (invoice.status === "void") {
       apiError(400, "INVOICE_VOID", "Cannot generate PDF for a void invoice.");
     }
 
     const profile = getBusinessProfile(user.id);
-    const client = store.clients.find((item) => item.id === invoice.clientId && item.userId === user.id);
-    if (!client) {
-      apiError(404, "NOT_FOUND", "Client not found.");
-    }
+    const client = requireClientOwned(user.id, invoice.clientId);
 
     if (profile.logoUrl) {
       try {
