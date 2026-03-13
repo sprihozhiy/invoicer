@@ -1,22 +1,27 @@
+import { and, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import { NextRequest } from "next/server";
 
 import { apiError, handleRouteError, paginatedResponse } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { parseInvoiceStatusFilter } from "@/lib/domain";
-import { toSummary } from "@/lib/invoices";
+import { withComputedStatus } from "@/lib/invoices";
 import { parsePagination } from "@/lib/pagination";
-import { ensureUuid } from "@/lib/validate";
+import { clients, invoices } from "@/lib/schema";
 import { todayUtc } from "@/lib/time";
-import { store } from "@/lib/store";
+import type { StoredInvoice } from "@/lib/models";
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const user = requireAuth(req);
     const { id } = await context.params;
-    const clientId = ensureUuid(id, "id");
 
-    const client = store.clients.find((item) => item.id === clientId && item.userId === user.id);
-    if (!client) {
+    const clientRow = db
+      .select({ id: clients.id, name: clients.name })
+      .from(clients)
+      .where(and(eq(clients.id, id), eq(clients.userId, user.id)))
+      .get();
+    if (!clientRow) {
       apiError(404, "NOT_FOUND", "Client not found.");
     }
 
@@ -24,20 +29,58 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const { page, limit, offset } = parsePagination(params.get("page"), params.get("limit"));
     const status = parseInvoiceStatusFilter(params.get("status"));
 
-    let invoices = store.invoices.filter((item) => item.userId === user.id && item.clientId === clientId && item.deletedAt === null);
+    const baseFilters = [
+      eq(invoices.userId, user.id),
+      eq(invoices.clientId, id),
+      isNull(invoices.deletedAt),
+    ];
+
     if (status) {
       if (status === "overdue") {
-        invoices = invoices.filter((item) => (item.status === "sent" || item.status === "partial") && item.dueDate < todayUtc());
+        baseFilters.push(inArray(invoices.status, ["sent", "partial"]));
+        baseFilters.push(lt(invoices.dueDate, todayUtc()));
       } else {
-        invoices = invoices.filter((item) => item.status === status);
+        baseFilters.push(eq(invoices.status, status));
       }
     }
 
-    invoices.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-    const data = invoices.slice(offset, offset + limit).map((invoice) => toSummary(invoice, client.name));
+    const whereClause = and(...baseFilters);
+
+    const rows = db
+      .select()
+      .from(invoices)
+      .where(whereClause)
+      .orderBy(desc(invoices.createdAt))
+      .limit(limit)
+      .offset(offset)
+      .all();
+
+    const totalRow = db
+      .select({ count: sql<number>`count(*)` })
+      .from(invoices)
+      .where(whereClause)
+      .get();
+
+    const clientName = clientRow!.name;
+    const data = rows.map((row) => {
+      const inv = withComputedStatus(row as unknown as StoredInvoice);
+      return {
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        status: inv.status,
+        clientId: inv.clientId,
+        clientName,
+        total: inv.total,
+        amountDue: inv.amountDue,
+        currency: inv.currency,
+        issueDate: inv.issueDate,
+        dueDate: inv.dueDate,
+        createdAt: inv.createdAt,
+      };
+    });
 
     return paginatedResponse(data, {
-      total: invoices.length,
+      total: Number(totalRow?.count ?? 0),
       page,
       limit,
     });

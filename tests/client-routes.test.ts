@@ -52,7 +52,7 @@ describe("F10 client route migration tests", () => {
       await seedProfile(db, otherUser.id);
 
       await seedClient(db, user.id, { name: "Acme Alpha", email: "alpha@acme.com" });
-      await seedClient(db, user.id, { name: "Beta Studio", email: "beta@studio.com" });
+      await seedClient(db, user.id, { name: "Beta Studio", email: "beta@studio.com", company: null });
       await seedClient(db, otherUser.id, { name: "Hidden Client", email: "hidden@example.com" });
 
       const { accessToken } = auth.issueSession(user.id);

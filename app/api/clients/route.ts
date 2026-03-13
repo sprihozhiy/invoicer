@@ -48,6 +48,9 @@ export async function GET(req: NextRequest) {
 
     const filters = [eq(clients.userId, user.id)];
     if (search) {
+      // REVIEW: `search` is not escaped for LIKE metacharacters (% and _). A user
+      // supplying "%" would match all their clients. Consider escaping with a
+      // replace + ESCAPE clause once drizzle-orm exposes that option.
       const pattern = `%${search}%`;
       filters.push(
         or(
