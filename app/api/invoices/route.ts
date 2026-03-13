@@ -12,6 +12,7 @@ import { parsePagination } from "@/lib/pagination";
 import { businessProfiles, clients, invoices } from "@/lib/schema";
 import { nowIso, todayUtc } from "@/lib/time";
 import { uuid } from "@/lib/ids";
+import { ensureUuid } from "@/lib/validate";
 import { InvoiceCreateSchema } from "@/lib/validators";
 import type { LineItem } from "@/lib/models";
 
@@ -73,7 +74,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (clientIdParam) {
-      conditions.push(eq(invoices.clientId, clientIdParam));
+      conditions.push(eq(invoices.clientId, ensureUuid(clientIdParam, "clientId")));
     }
 
     if (search) {
@@ -148,7 +149,16 @@ export async function POST(req: NextRequest) {
       apiError(404, "NOT_FOUND", "Client not found.");
     }
 
-    const currency = input.currency ?? client.currency;
+    const profile = db
+      .select()
+      .from(businessProfiles)
+      .where(eq(businessProfiles.userId, user.id))
+      .get();
+    if (!profile) {
+      apiError(500, "INTERNAL_SERVER_ERROR", "Business profile not found.");
+    }
+
+    const currency = input.currency ?? profile.defaultCurrency;
 
     const lineItems = computeLineItems(input.lineItems);
     const totals = computeTotals({
@@ -163,22 +173,22 @@ export async function POST(req: NextRequest) {
 
     // Atomic transaction to get/increment nextInvoiceNumber
     const invoice = db.transaction((tx) => {
-      const profile = tx
+      const profileInTx = tx
         .select()
         .from(businessProfiles)
         .where(eq(businessProfiles.userId, user.id))
         .get();
-      if (!profile) {
+      if (!profileInTx) {
         apiError(500, "INTERNAL_SERVER_ERROR", "Business profile not found.");
       }
 
       let invoiceNumber = input.invoiceNumber;
       if (!invoiceNumber) {
-        invoiceNumber = computeInvoiceNumber(profile.invoicePrefix, profile.nextInvoiceNumber);
+        invoiceNumber = computeInvoiceNumber(profileInTx.invoicePrefix, profileInTx.nextInvoiceNumber);
         tx
           .update(businessProfiles)
-          .set({ nextInvoiceNumber: profile.nextInvoiceNumber + 1, updatedAt: now })
-          .where(eq(businessProfiles.id, profile.id))
+          .set({ nextInvoiceNumber: profileInTx.nextInvoiceNumber + 1, updatedAt: now })
+          .where(eq(businessProfiles.id, profileInTx.id))
           .run();
       }
 

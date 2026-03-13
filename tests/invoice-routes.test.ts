@@ -150,6 +150,25 @@ describe("F8 invoice route migration tests", () => {
     }
   });
 
+  it("GET /api/invoices returns 400 when clientId is not a UUID", async () => {
+    const { db, sqlite, auth, invoicesRoute } = await loadInvoiceRoutes();
+    try {
+      const user = await seedUser(db);
+      await seedProfile(db, user.id);
+
+      const { accessToken } = auth.issueSession(user.id);
+      const req = authedRequest("http://localhost/api/invoices?clientId=not-a-uuid", accessToken);
+
+      const response = await invoicesRoute.GET(req);
+      expect(response.status).toBe(400);
+      const json = await response.json();
+      expect(json.error.code).toBe("VALIDATION_ERROR");
+      expect(json.error.field).toBe("clientId");
+    } finally {
+      sqlite.close();
+    }
+  });
+
   it("POST /api/invoices creates invoice and increments nextInvoiceNumber", async () => {
     const { db, sqlite, auth, invoicesRoute } = await loadInvoiceRoutes();
     try {
@@ -185,6 +204,37 @@ describe("F8 invoice route migration tests", () => {
       const { eq } = await import("drizzle-orm");
       const profile = db2.select().from(businessProfiles).where(eq(businessProfiles.userId, user.id)).get();
       expect(profile?.nextInvoiceNumber).toBe(2);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it("POST /api/invoices defaults currency from business profile", async () => {
+    const { db, sqlite, auth, invoicesRoute } = await loadInvoiceRoutes();
+    try {
+      const user = await seedUser(db);
+      await seedProfile(db, user.id, { defaultCurrency: "CAD" });
+      const client = await seedClient(db, user.id, { currency: "USD" });
+
+      const { accessToken } = auth.issueSession(user.id);
+      const req = new NextRequest("http://localhost/api/invoices", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: `invoicer_access=${accessToken}`,
+        },
+        body: JSON.stringify({
+          clientId: client.id,
+          issueDate: "2026-03-01",
+          dueDate: "2026-03-31",
+          lineItems: [{ description: "Design", quantity: 1, unitPrice: 5000 }],
+        }),
+      });
+
+      const response = await invoicesRoute.POST(req);
+      expect(response.status).toBe(201);
+      const json = await response.json();
+      expect(json.data.currency).toBe("CAD");
     } finally {
       sqlite.close();
     }
@@ -493,7 +543,7 @@ describe("F8 invoice route migration tests", () => {
       });
       expect(response.status).toBe(400);
       const json = await response.json();
-      expect(json.error.code).toBe("INVALID_STATUS_TRANSITION");
+      expect(json.error.code).toBe("INVALID_STATUS");
     } finally {
       sqlite.close();
     }
@@ -634,6 +684,45 @@ describe("F8 invoice route migration tests", () => {
       expect(json.data.invoice.status).toBe("partial");
       expect(json.data.invoice.amountPaid).toBe(4000);
       expect(json.data.invoice.amountDue).toBe(6000);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it("POST /api/invoices/[id]/payments returns PAYMENT_EXCEEDS_DUE when amount is too large", async () => {
+    const { db, sqlite, auth, paymentsRoute } = await loadInvoiceRoutes();
+    try {
+      const user = await seedUser(db);
+      await seedProfile(db, user.id);
+      const client = await seedClient(db, user.id);
+      const invoice = await seedInvoice(db, user.id, client.id, {
+        status: "sent",
+        total: 10000,
+        amountPaid: 0,
+        amountDue: 10000,
+      });
+
+      const { accessToken } = auth.issueSession(user.id);
+      const req = new NextRequest(`http://localhost/api/invoices/${invoice.id}/payments`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: `invoicer_access=${accessToken}`,
+        },
+        body: JSON.stringify({
+          amount: 10001,
+          method: "cash",
+          paidAt: "2026-03-01",
+        }),
+      });
+
+      const response = await paymentsRoute.POST(req, {
+        params: Promise.resolve({ id: invoice.id }),
+      });
+      expect(response.status).toBe(400);
+      const json = await response.json();
+      expect(json.error.code).toBe("PAYMENT_EXCEEDS_DUE");
+      expect(json.error.field).toBe("amount");
     } finally {
       sqlite.close();
     }

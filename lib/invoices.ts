@@ -95,13 +95,13 @@ export function ensureEditable(invoice: StoredInvoice): void {
 
 export function ensureCanSend(invoice: StoredInvoice): void {
   if (invoice.status !== "draft") {
-    apiError(400, "INVALID_STATUS_TRANSITION", "Invoice cannot be sent from its current status.");
+    apiError(400, "INVALID_STATUS", "Invoice cannot be sent from its current status.");
   }
 }
 
 export function ensureCanVoid(invoice: StoredInvoice): void {
   if (invoice.status === "paid" || invoice.status === "void") {
-    apiError(400, "INVALID_STATUS_TRANSITION", "Invoice cannot be voided from its current status.");
+    apiError(400, "INVALID_STATUS", "Invoice cannot be voided from its current status.");
   }
 }
 

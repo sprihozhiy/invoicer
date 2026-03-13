@@ -100,7 +100,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     const input = parsed.data;
 
     if (input.amount > invoice.amountDue) {
-      apiError(400, "VALIDATION_ERROR", "amount must be <= amountDue.", "amount");
+      apiError(400, "PAYMENT_EXCEEDS_DUE", "amount must be <= amountDue.", "amount");
     }
 
     const paidAt = input.paidAt ?? todayUtc();
