@@ -133,6 +133,7 @@ export const catalogItems = sqliteTable('catalog_items', {
   taxable:     integer('taxable', { mode: 'boolean' }).notNull().default(false),
   createdAt:   text('created_at').notNull(),
   updatedAt:   text('updated_at').notNull(),
+  deletedAt:   text('deleted_at'),
 }, (t) => [
   index('catalog_user_id_idx').on(t.userId),
 ])
