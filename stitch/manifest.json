@@ -1,0 +1,16 @@
+{
+  "projectId": "16871463377867609535",
+  "selectedScreens": [
+    "aa79fab09b4c4c75918a6ab03adb7186"
+  ],
+  "variantOptions": {
+    "variantCount": 3,
+    "creativeRange": "EXPLORE"
+  },
+  "outputs": {
+    "landingPrototype": "landing-prototype.html",
+    "appPrototype": "app-prototype.html",
+    "designBrief": "design-brief.md"
+  },
+  "generatedAt": "2026-03-13T04:30:34.630Z"
+}
