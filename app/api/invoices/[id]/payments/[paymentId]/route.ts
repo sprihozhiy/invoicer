@@ -55,7 +55,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       )
       .get();
     if (!invoiceRow) {
-      apiError(404, "NOT_FOUND", "Payment not found.");
+      apiError(404, "NOT_FOUND", "Invoice not found.");
     }
 
     const paymentRow = db
