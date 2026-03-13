@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 
-import { handleRouteError } from "@/lib/api";
+import { handleRouteError, successResponse } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
 import { flatToAddress } from "@/lib/domain";
 import { db } from "@/lib/db";
@@ -37,7 +37,12 @@ export async function GET(req: NextRequest) {
       updatedAt: row.updatedAt,
     }));
 
-    return Response.json({ profiles }, { status: 200 });
+    // REVIEW: spec defines GET /api/profile as returning { data: BusinessProfile } (single
+    // profile). This implementation returns a list under { data: profiles[] } because the task
+    // introduced per-profile [id] routes. The frontend currently calls GET /api/profile and
+    // expects a single object. Confirm with product whether to keep this list shape or revert to
+    // the single-profile shape from the spec before wiring up the frontend.
+    return successResponse(profiles, 200);
   } catch (error) {
     return handleRouteError(error);
   }

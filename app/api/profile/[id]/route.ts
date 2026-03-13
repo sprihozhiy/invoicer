@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 
-import { handleRouteError, readJsonBody } from "@/lib/api";
+import { actionResponse, handleRouteError, readJsonBody, successResponse } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
 import { applyProfilePatch, addressToFlat, getProfileOrFail } from "@/lib/domain";
 import { db } from "@/lib/db";
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   try {
     const user = requireAuth(req);
     const { id } = await context.params;
-    return Response.json(getProfileOrFail(user.id, id), { status: 200 });
+    return successResponse(getProfileOrFail(user.id, id), 200);
   } catch (error) {
     return handleRouteError(error);
   }
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
       .where(and(eq(businessProfiles.id, id), eq(businessProfiles.userId, user.id)))
       .run();
 
-    return Response.json(updatedProfile, { status: 200 });
+    return successResponse(updatedProfile, 200);
   } catch (error) {
     return handleRouteError(error);
   }
@@ -63,7 +63,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       .where(and(eq(businessProfiles.id, id), eq(businessProfiles.userId, user.id)))
       .run();
 
-    return Response.json({ deleted: true }, { status: 200 });
+    return actionResponse(200);
   } catch (error) {
     return handleRouteError(error);
   }

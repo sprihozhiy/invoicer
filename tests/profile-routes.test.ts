@@ -60,10 +60,10 @@ describe("profile route migration tests", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.profiles).toHaveLength(1);
-      expect(json.profiles[0].id).toBe(owned.id);
-      expect(json.profiles[0].businessName).toBe("Owned Business");
-      expect(json.profiles[0].address).toEqual({
+      expect(json.data).toHaveLength(1);
+      expect(json.data[0].id).toBe(owned.id);
+      expect(json.data[0].businessName).toBe("Owned Business");
+      expect(json.data[0].address).toEqual({
         line1: "123 Main St",
         line2: null,
         city: "Edmonton",
@@ -92,9 +92,9 @@ describe("profile route migration tests", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.id).toBe(profile.id);
-      expect(json.userId).toBe(user.id);
-      expect(json.businessName).toBe("Northwind");
+      expect(json.data.id).toBe(profile.id);
+      expect(json.data.userId).toBe(user.id);
+      expect(json.data.businessName).toBe("Northwind");
     } finally {
       sqlite.close();
     }
@@ -130,10 +130,10 @@ describe("profile route migration tests", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.id).toBe(profile.id);
-      expect(json.businessName).toBe("New Name");
-      expect(json.defaultCurrency).toBe("CAD");
-      expect(json.address).toEqual({
+      expect(json.data.id).toBe(profile.id);
+      expect(json.data.businessName).toBe("New Name");
+      expect(json.data.defaultCurrency).toBe("CAD");
+      expect(json.data.address).toEqual({
         line1: "88 Jasper Ave",
         line2: null,
         city: "Edmonton",
@@ -146,7 +146,7 @@ describe("profile route migration tests", () => {
     }
   });
 
-  it("DELETE /api/profile/[id] returns { deleted: true }", async () => {
+  it("DELETE /api/profile/[id] returns { success: true }", async () => {
     const { db, sqlite, auth, profileByIdRoute } = await loadProfileRoutes();
     try {
       const user = await seedUser(db);
@@ -162,7 +162,7 @@ describe("profile route migration tests", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json).toEqual({ deleted: true });
+      expect(json).toEqual({ success: true });
 
       const row = await db.query.businessProfiles.findFirst({
         where: and(
