@@ -1,0 +1,12 @@
+YOLO mode is enabled. All tool calls will be automatically approved.
+Loaded cached credentials.
+YOLO mode is enabled. All tool calls will be automatically approved.
+Loading extension: Stitch
+Model set to gemini-3.1-pro-preview
+I have successfully created all three requested files, ensuring a premium, unified design language across both the marketing site and the application interface.
+
+1.  **`design-brief.md`**: Contains the shared design system. It details the high-contrast Indigo/Slate color palette, precise typography scale using system fonts, standardized spacing increments, and component interaction states.
+2.  **`landing-prototype.html`**: A fully responsive marketing mockup featuring a hero section with a stylized dashboard preview, a features grid with SVG iconography, and a structured footer.
+3.  **`app-prototype.html`**: A comprehensive single-file app prototype. It uses vanilla JavaScript to switch between the required screens (Auth, Dashboard, Invoices, Invoice Detail, Clients, and Settings) while sharing the exact CSS variables and design tokens defined in the brief.
+
+Both HTML files use plain HTML, CSS, and minimal JS without any external image or stylesheet dependencies, making them perfect for your Stitch integration workflow.
