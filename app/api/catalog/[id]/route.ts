@@ -1,64 +1,85 @@
-import { NextRequest } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
+import { and, eq, isNull } from "drizzle-orm";
 
-import { actionResponse, apiError, handleRouteError, readJsonBody, successResponse } from "@/lib/api";
+import { apiError, handleRouteError, parseBody, readJsonBody } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ensureInteger, ensureOptionalString, ensureString, ensureUuid } from "@/lib/validate";
-import { nowIso } from "@/lib/time";
 import { catalogItems } from "@/lib/schema";
+import { nowIso } from "@/lib/time";
+import { ensureUuid } from "@/lib/validate";
+import { CatalogPatchSchema } from "@/lib/validators";
+
+function getCatalogOrFail(userId: string, id: string) {
+  const catalog = db
+    .select()
+    .from(catalogItems)
+    .where(
+      and(
+        eq(catalogItems.id, id),
+        eq(catalogItems.userId, userId),
+        isNull(catalogItems.deletedAt),
+      ),
+    )
+    .get();
+
+  if (!catalog) {
+    apiError(404, "NOT_FOUND", "Catalog item not found.");
+  }
+
+  return catalog;
+}
+
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    const user = requireAuth(req);
+    const { id } = await context.params;
+    const catalogId = ensureUuid(id, "id");
+
+    const catalog = getCatalogOrFail(user.id, catalogId);
+    return NextResponse.json(catalog, { status: 200 });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
 
 export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const user = requireAuth(req);
     const { id } = await context.params;
-    const itemId = ensureUuid(id, "id");
+    const catalogId = ensureUuid(id, "id");
+    getCatalogOrFail(user.id, catalogId);
 
-    const item = db
-      .select()
-      .from(catalogItems)
-      .where(and(eq(catalogItems.id, itemId), eq(catalogItems.userId, user.id)))
-      .get();
-    if (!item) {
-      apiError(404, "NOT_FOUND", "Catalog item not found.");
+    const body = await readJsonBody<unknown>(req);
+    const parsed = parseBody(CatalogPatchSchema, body);
+    if (!parsed.ok) {
+      return parsed.response;
     }
+    const patch = parsed.data;
 
-    const body = await readJsonBody<Record<string, unknown>>(req);
-    const changes: Partial<typeof catalogItems.$inferInsert> = {};
-
-    if ("name" in body) {
-      const name = ensureString(body.name, "name", 1, 200);
-      if (!name.trim()) {
-        apiError(400, "VALIDATION_ERROR", "name cannot be empty.", "name");
-      }
-      changes.name = name;
-    }
-    if ("description" in body) {
-      changes.description = ensureOptionalString(body.description, "description", 500) ?? null;
-    }
-    if ("unitPrice" in body) {
-      changes.unitPrice = ensureInteger(body.unitPrice, "unitPrice", 0);
-    }
-    if ("unit" in body) {
-      changes.unit = ensureOptionalString(body.unit, "unit", 20) ?? null;
-    }
-    if ("taxable" in body) {
-      changes.taxable = Boolean(body.taxable);
-    }
-
-    changes.updatedAt = nowIso();
+    const changes: Partial<typeof catalogItems.$inferInsert> = { updatedAt: nowIso() };
+    if (patch.name !== undefined) changes.name = patch.name;
+    if (patch.description !== undefined) changes.description = patch.description ?? null;
+    if (patch.unitPrice !== undefined) changes.unitPrice = patch.unitPrice;
+    if (patch.unit !== undefined) changes.unit = patch.unit ?? null;
+    if (patch.taxable !== undefined) changes.taxable = patch.taxable;
 
     const updatedItem = db
       .update(catalogItems)
       .set(changes)
-      .where(and(eq(catalogItems.id, itemId), eq(catalogItems.userId, user.id)))
+      .where(
+        and(
+          eq(catalogItems.id, catalogId),
+          eq(catalogItems.userId, user.id),
+          isNull(catalogItems.deletedAt),
+        ),
+      )
       .returning()
       .get();
     if (!updatedItem) {
       apiError(404, "NOT_FOUND", "Catalog item not found.");
     }
 
-    return successResponse(updatedItem, 200);
+    return NextResponse.json(updatedItem, { status: 200 });
   } catch (error) {
     return handleRouteError(error);
   }
@@ -68,17 +89,21 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   try {
     const user = requireAuth(req);
     const { id } = await context.params;
-    const itemId = ensureUuid(id, "id");
+    const catalogId = ensureUuid(id, "id");
+    getCatalogOrFail(user.id, catalogId);
 
-    const deleted = db
-      .delete(catalogItems)
-      .where(and(eq(catalogItems.id, itemId), eq(catalogItems.userId, user.id)))
+    db.update(catalogItems)
+      .set({ deletedAt: nowIso(), updatedAt: nowIso() })
+      .where(
+        and(
+          eq(catalogItems.id, catalogId),
+          eq(catalogItems.userId, user.id),
+          isNull(catalogItems.deletedAt),
+        ),
+      )
       .run();
-    if (!deleted.changes) {
-      apiError(404, "NOT_FOUND", "Catalog item not found.");
-    }
 
-    return actionResponse(200);
+    return NextResponse.json({ deleted: true }, { status: 200 });
   } catch (error) {
     return handleRouteError(error);
   }

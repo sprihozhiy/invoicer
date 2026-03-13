@@ -203,6 +203,7 @@ export async function seedCatalogItem(
     taxable:     false,
     createdAt:   now,
     updatedAt:   now,
+    deletedAt:   null,
     ...overrides,
   }
   await db.insert(schema.catalogItems).values(row as typeof schema.catalogItems.$inferInsert)
