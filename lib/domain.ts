@@ -51,8 +51,14 @@ export function addressToFlat(address: Address | null | undefined): FlatAddressC
   };
 }
 
-export function getProfileOrFail(userId: string): BusinessProfile {
-  const row = db.select().from(businessProfiles).where(eq(businessProfiles.userId, userId)).get();
+export function getProfileOrFail(userId: string, profileId?: string): BusinessProfile {
+  const row = profileId
+    ? db
+        .select()
+        .from(businessProfiles)
+        .where(and(eq(businessProfiles.userId, userId), eq(businessProfiles.id, profileId)))
+        .get()
+    : db.select().from(businessProfiles).where(eq(businessProfiles.userId, userId)).get();
   if (!row) {
     apiError(404, "NOT_FOUND", "Business profile not found.");
   }

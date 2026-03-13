@@ -1,54 +1,48 @@
 import { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 
-import { handleRouteError, readJsonBody, successResponse } from "@/lib/api";
+import { handleRouteError, successResponse } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
-import { applyProfilePatch, getBusinessProfile } from "@/lib/domain";
+import { flatToAddress } from "@/lib/domain";
 import { db } from "@/lib/db";
 import { businessProfiles } from "@/lib/schema";
 
 export async function GET(req: NextRequest) {
   try {
     const user = requireAuth(req);
-    return successResponse(getBusinessProfile(user.id), 200);
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
-
-export async function PATCH(req: NextRequest) {
-  try {
-    const user = requireAuth(req);
-    const profile = getBusinessProfile(user.id);
-    const body = await readJsonBody<Record<string, unknown>>(req);
-    applyProfilePatch(profile, body);
-
-    db.update(businessProfiles)
-      .set({
-        businessName: profile.businessName,
-        phone: profile.phone,
-        email: profile.email,
-        website: profile.website,
-        taxId: profile.taxId,
-        defaultCurrency: profile.defaultCurrency,
-        defaultPaymentTermsDays: profile.defaultPaymentTermsDays,
-        defaultTaxRate: profile.defaultTaxRate,
-        defaultNotes: profile.defaultNotes,
-        defaultTerms: profile.defaultTerms,
-        invoicePrefix: profile.invoicePrefix,
-        nextInvoiceNumber: profile.nextInvoiceNumber,
-        addressLine1: profile.address?.line1 ?? null,
-        addressLine2: profile.address?.line2 ?? null,
-        addressCity: profile.address?.city ?? null,
-        addressState: profile.address?.state ?? null,
-        addressPostalCode: profile.address?.postalCode ?? null,
-        addressCountry: profile.address?.country ?? null,
-        updatedAt: profile.updatedAt,
-      })
+    const rows = db
+      .select()
+      .from(businessProfiles)
       .where(eq(businessProfiles.userId, user.id))
-      .run();
+      .all();
 
-    return successResponse(profile, 200);
+    const profiles = rows.map((row) => ({
+      id: row.id,
+      userId: row.userId,
+      businessName: row.businessName,
+      logoUrl: row.logoUrl ?? null,
+      address: flatToAddress(row),
+      phone: row.phone ?? null,
+      email: row.email ?? null,
+      website: row.website ?? null,
+      taxId: row.taxId ?? null,
+      defaultCurrency: row.defaultCurrency,
+      defaultPaymentTermsDays: row.defaultPaymentTermsDays,
+      defaultTaxRate: row.defaultTaxRate ?? null,
+      defaultNotes: row.defaultNotes ?? null,
+      defaultTerms: row.defaultTerms ?? null,
+      invoicePrefix: row.invoicePrefix,
+      nextInvoiceNumber: row.nextInvoiceNumber,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
+
+    // REVIEW: spec defines GET /api/profile as returning { data: BusinessProfile } (single
+    // profile). This implementation returns a list under { data: profiles[] } because the task
+    // introduced per-profile [id] routes. The frontend currently calls GET /api/profile and
+    // expects a single object. Confirm with product whether to keep this list shape or revert to
+    // the single-profile shape from the spec before wiring up the frontend.
+    return successResponse(profiles, 200);
   } catch (error) {
     return handleRouteError(error);
   }
