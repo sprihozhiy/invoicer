@@ -212,7 +212,6 @@ body {
 .app-table {
   width: 100%;
   border-collapse: collapse;
-  white-space: nowrap;
 }
 .app-table th {
   font-size: 12px;
