@@ -1,11 +1,47 @@
 import { NextRequest } from "next/server";
+import { and, eq, isNull } from "drizzle-orm";
 
-import { apiError, handleRouteError, readJsonBody, successResponse } from "@/lib/api";
+import { actionResponse, apiError, handleRouteError, readJsonBody } from "@/lib/api";
+import { parseBody } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
-import { ensureCanSend, withComputedStatus } from "@/lib/invoices";
-import { ensureEmail, ensureOptionalString, ensureUuid } from "@/lib/validate";
+import { db } from "@/lib/db";
+import { ensureCanSend } from "@/lib/invoices";
+import { StoredInvoice, StoredInvoiceStatus } from "@/lib/models";
+import { invoices } from "@/lib/schema";
 import { nowIso } from "@/lib/time";
-import { store } from "@/lib/store";
+import { ensureUuid } from "@/lib/validate";
+import { InvoiceSendSchema } from "@/lib/validators";
+import type { LineItem } from "@/lib/models";
+
+function toStoredInvoice(row: typeof invoices.$inferSelect): StoredInvoice {
+  return {
+    id: row.id,
+    userId: row.userId,
+    clientId: row.clientId,
+    invoiceNumber: row.invoiceNumber,
+    status: row.status as StoredInvoiceStatus,
+    issueDate: row.issueDate,
+    dueDate: row.dueDate,
+    currency: row.currency,
+    lineItems: row.lineItems as LineItem[],
+    subtotal: row.subtotal,
+    taxRate: row.taxRate ?? null,
+    taxAmount: row.taxAmount,
+    discountType: (row.discountType ?? null) as "percentage" | "fixed" | null,
+    discountValue: row.discountValue,
+    discountAmount: row.discountAmount,
+    total: row.total,
+    amountPaid: row.amountPaid,
+    amountDue: row.amountDue,
+    notes: row.notes ?? null,
+    terms: row.terms ?? null,
+    sentAt: row.sentAt ?? null,
+    paidAt: row.paidAt ?? null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
+  };
+}
 
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -13,25 +49,31 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     const { id } = await context.params;
     const invoiceId = ensureUuid(id, "id");
 
-    const invoice = store.invoices.find((item) => item.id === invoiceId && item.userId === user.id && item.deletedAt === null);
-    if (!invoice) {
+    const row = db
+      .select()
+      .from(invoices)
+      .where(
+        and(eq(invoices.id, invoiceId), eq(invoices.userId, user.id), isNull(invoices.deletedAt)),
+      )
+      .get();
+    if (!row) {
       apiError(404, "NOT_FOUND", "Invoice not found.");
     }
 
+    const invoice = toStoredInvoice(row);
     ensureCanSend(invoice);
 
     const body = await readJsonBody<Record<string, unknown>>(req);
-    ensureEmail(body.recipientEmail, "recipientEmail");
-    const message = ensureOptionalString(body.message, "message", 1000);
-    if (typeof message === "string" && message.length > 1000) {
-      apiError(400, "VALIDATION_ERROR", "message exceeds 1000 characters.", "message");
-    }
+    const parsed = parseBody(InvoiceSendSchema, body);
+    if (!parsed.ok) return parsed.response;
 
-    invoice.status = "sent";
-    invoice.sentAt = nowIso();
-    invoice.updatedAt = nowIso();
+    const now = nowIso();
+    db.update(invoices)
+      .set({ status: "sent", sentAt: now, updatedAt: now })
+      .where(eq(invoices.id, invoiceId))
+      .run();
 
-    return successResponse(withComputedStatus(invoice), 200);
+    return actionResponse(200);
   } catch (error) {
     return handleRouteError(error);
   }
