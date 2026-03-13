@@ -5,7 +5,7 @@ import { apiError, handleRouteError, readJsonBody, successResponse } from "@/lib
 import { parseBody } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ensureCanRecordPayment, updateStatusFromPayment, withComputedStatus } from "@/lib/invoices";
+import { ensureCanRecordPayment, updateStatusFromPayment } from "@/lib/invoices";
 import { StoredInvoice, StoredInvoiceStatus } from "@/lib/models";
 import { invoices, payments } from "@/lib/schema";
 import { nowIso, todayUtc } from "@/lib/time";
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     return successResponse(
       {
         payment: result.payment,
-        invoice: withComputedStatus(result.invoice),
+        invoice: result.invoice,
       },
       201,
     );
