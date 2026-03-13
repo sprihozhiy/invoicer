@@ -3,587 +3,616 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoicer App - Dashboard</title>
-    
+    <title>Invoicer - App UI Prototype</title>
     <style>
-        /* Inter Font from Google Fonts */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-        /* 1. Design System & Variables */
+        /* Shared Design System Variables */
         :root {
-            /* Colors from design-brief.md */
-            --bg-primary: #0F0F0F;
-            --bg-surface: #1A1A1A;
-            --bg-elevated: #242424;
-            --bg-hover: #2E2E2E;
-            --text-primary: #F5F5F5;
-            --text-secondary: #A0A0A0;
-            --text-muted: #6B6B6B;
-            --border-primary: #2E2E2E;
-            --border-focus: #6366F1;
-            --accent-primary: #6366F1;
-            --accent-hover: #818CF8;
-            --accent-active: #4F46E5;
-            --accent-text: #FFFFFF;
-            
-            /* Semantic Colors */
-            --status-draft-fg: #A0A0A0; --status-draft-bg: #1C1C1C;
-            --status-sent-fg: #6366F1; --status-sent-bg: #1E1B4B;
-            --status-partial-fg: #F59E0B; --status-partial-bg: #431407;
-            --status-paid-fg: #22C55E; --status-paid-bg: #052E16;
-            --status-overdue-fg: #EF4444; --status-overdue-bg: #450A0A;
-            --status-void-fg: #6B6B6B; --status-void-bg: #171717;
-
-            /* Typography */
-            --font-family: 'Inter', sans-serif;
-            
-            /* Spacing */
-            --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
-            --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
-            --space-12: 48px; --space-16: 64px;
-
-            /* Layout */
-            --sidebar-width: 240px;
-            --header-height: 72px;
-            --max-width: 1280px;
-
-            /* Animation */
-            --transition-speed: 200ms;
-            --timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            --primary-50: #eef2ff;
+            --primary-100: #e0e7ff;
+            --primary-500: #6366f1;
+            --primary-600: #4f46e5;
+            --primary-900: #312e81;
+            --bg-app: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-tertiary: #94a3b8;
+            --success-bg: #ecfdf5;
+            --success-text: #059669;
+            --warning-bg: #fffbeb;
+            --warning-text: #d97706;
+            --danger-bg: #fef2f2;
+            --danger-text: #dc2626;
+            --radius: 8px;
+            --radius-lg: 12px;
         }
 
-        /* 2. Base & Reset */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; }
-        body {
-            background-color: var(--bg-primary);
-            color: var(--text-secondary);
-            font-family: var(--font-family);
-            line-height: 1.6;
-            font-size: 16px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-        h1, h2, h3, h4 { color: var(--text-primary); font-weight: 600; line-height: 1.2; }
-        h1 { font-size: 36px; }
-        h2 { font-size: 24px; }
-        h3 { font-size: 20px; }
-        p { margin-bottom: var(--space-4); }
-        a { color: var(--accent-primary); text-decoration: none; }
-        a:hover { color: var(--accent-hover); }
-
-        /* 3. App Layout */
-        .app-layout {
-            display: flex;
-            height: 100vh;
-        }
-        .sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--bg-surface);
-            border-right: 1px solid var(--border-primary);
-            padding: var(--space-6);
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            transition: transform var(--transition-speed) var(--timing-function);
-        }
-        .main-content {
-            flex-grow: 1;
-            overflow-y: auto;
-            background-color: var(--bg-primary);
-        }
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: var(--space-6) var(--space-8);
-            border-bottom: 1px solid var(--border-primary);
-            background: var(--bg-surface);
-        }
-        .page-content-container {
-            padding: var(--space-8);
-            max-width: var(--max-width);
-            margin: 0 auto;
-        }
-        .page-content { display: none; }
-        .page-content.active { display: block; }
+        /* Reset & Base Setup */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-app); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; font-size: 14px; -webkit-font-smoothing: antialiased; }
         
-        .mobile-header { display: none; }
-
-        /* 4. Components */
-        .btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
-            padding: var(--space-2) var(--space-4); font-size: 14px; font-weight: 500;
-            border-radius: 8px; border: 1px solid transparent; cursor: pointer;
-            transition: all var(--transition-speed) var(--timing-function);
-        }
-        .btn:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
-        .btn-primary { background-color: var(--accent-primary); color: var(--accent-text); }
-        .btn-primary:hover { background-color: var(--accent-hover); }
-        .btn-secondary { background-color: var(--bg-elevated); color: var(--text-primary); border-color: var(--border-primary); }
-        .btn-secondary:hover { background-color: var(--bg-hover); }
-        .btn-danger { background-color: transparent; color: var(--status-overdue-fg); border: 1px solid var(--status-overdue-fg); }
-        .btn-danger:hover { background-color: var(--status-overdue-bg); }
-        .btn-icon { background: none; border: none; padding: var(--space-1); border-radius: 4px; color: var(--text-secondary); }
-        .btn-icon:hover { background-color: var(--bg-hover); color: var(--text-primary); }
-
-        .card {
-            background-color: var(--bg-surface); border: 1px solid var(--border-primary);
-            border-radius: 12px; padding: var(--space-6);
-        }
+        /* Icons via CSS data URIs for simplicity */
+        .icon { width: 18px; height: 18px; display: inline-block; vertical-align: middle; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
         
-        .form-group { margin-bottom: var(--space-5); }
-        .form-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: var(--space-2); }
-        .form-input, .form-select {
-            display: block; width: 100%; background-color: var(--bg-elevated);
-            color: var(--text-primary); border: 1px solid var(--border-primary);
-            border-radius: 8px; padding: var(--space-3); font-size: 14px;
-        }
-        .form-input:focus, .form-select:focus { border-color: var(--border-focus); outline: none; }
-        .form-input::placeholder { color: var(--text-muted); }
-
-        .status-badge {
-            display: inline-flex; align-items: center; gap: var(--space-2);
-            font-size: 12px; font-weight: 500; padding: 2px 8px;
-            border-radius: 9999px; text-transform: capitalize;
-        }
-        .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
-        .status-badge.draft { color: var(--status-draft-fg); background: var(--status-draft-bg); }
-        .status-badge.draft::before { background: var(--status-draft-fg); }
-        .status-badge.sent { color: var(--status-sent-fg); background: var(--status-sent-bg); }
-        .status-badge.sent::before { background: var(--status-sent-fg); }
-        .status-badge.partial { color: var(--status-partial-fg); background: var(--status-partial-bg); }
-        .status-badge.partial::before { background: var(--status-partial-fg); }
-        .status-badge.paid { color: var(--status-paid-fg); background: var(--status-paid-bg); }
-        .status-badge.paid::before { background: var(--status-paid-fg); }
-        .status-badge.overdue { color: var(--status-overdue-fg); background: var(--status-overdue-bg); }
-        .status-badge.overdue::before { background: var(--status-overdue-fg); }
-        .status-badge.void { color: var(--status-void-fg); background: var(--status-void-bg); }
-        .status-badge.void::before { background: var(--status-void-fg); }
-
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 1px solid var(--border-primary); font-size: 14px; }
-        th { font-size: 12px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; }
-        tbody tr:hover { background-color: var(--bg-hover); }
+        /* Typography */
+        h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+        h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
         
-        .modal-overlay {
-            position: fixed; inset: 0; background-color: rgba(0,0,0,0.7);
-            z-index: 200; display: none; align-items: center; justify-content: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal-content {
-            background-color: var(--bg-elevated); border-radius: 12px;
-            padding: var(--space-6); max-width: 500px; width: 90%;
-            animation: modal-fade-in 0.2s var(--timing-function);
-        }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); }
-        @keyframes modal-fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        
-        /* 5. Sidebar Navigation */
-        .sidebar-header { margin-bottom: var(--space-8); }
-        .sidebar-logo {
-            display: flex; align-items: center; gap: var(--space-2);
-            color: var(--text-primary); font-weight: 600; font-size: 20px;
-        }
-        .main-nav, .secondary-nav { list-style: none; }
-        .main-nav { flex-grow: 1; }
-        .nav-item a {
-            display: flex; align-items: center; gap: var(--space-3);
-            padding: var(--space-3); border-radius: 8px;
-            color: var(--text-secondary); font-weight: 500; font-size: 14px;
-            transition: all var(--transition-speed) var(--timing-function);
-        }
-        .nav-item a:hover { background-color: var(--bg-hover); color: var(--text-primary); }
-        .nav-item a.active { background-color: var(--bg-elevated); color: var(--text-primary); }
-        .nav-item a i { width: 18px; height: 18px; }
+        /* Components: Buttons */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; border-radius: var(--radius); font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; font-size: 14px; text-decoration: none; }
+        .btn-primary { background: var(--primary-600); color: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .btn-primary:hover { background: var(--primary-500); }
+        .btn-secondary { background: white; border-color: var(--border); color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .btn-secondary:hover { background: var(--bg-app); }
+        .btn-danger { background: white; border-color: var(--danger-text); color: var(--danger-text); }
+        .btn-danger:hover { background: var(--danger-bg); }
 
-        /* 6. Page-specific Styles */
-        /* Dashboard */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-6); }
-        .stat-card { padding: var(--space-4); }
-        .stat-card .label { font-size: 14px; color: var(--text-secondary); margin-bottom: var(--space-2); }
-        .stat-card .value { font-size: 28px; font-weight: 600; color: var(--text-primary); }
-        .stat-card .change { font-size: 14px; }
-        .widget { margin-top: var(--space-8); }
-        .widget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); }
-        
-        /* Auth pages */
-        .auth-wrapper { height: 100%; display: flex; align-items: center; justify-content: center; }
-        .auth-card { width: 100%; max-width: 400px; }
+        /* Components: Forms */
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-weight: 500; margin-bottom: 6px; color: var(--text-primary); }
+        .form-input, .form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; transition: all 0.2s; background: white; color: var(--text-primary); }
+        .form-input:focus, .form-select:focus { border-color: var(--primary-500); outline: none; box-shadow: 0 0 0 3px var(--primary-100); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 
-        /* Invoice Detail */
-        .invoice-detail-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-4); }
-        .invoice-meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-8); margin-top: var(--space-8); }
-        .line-items-table { margin-top: var(--space-8); }
-        .invoice-totals { margin-top: var(--space-6); display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-3); }
+        /* Components: Cards & Tables */
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .table-container { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { padding: 12px 24px; font-size: 12px; font-weight: 500; color: var(--text-secondary); border-bottom: 1px solid var(--border); background: #fafafa; text-transform: uppercase; letter-spacing: 0.05em; }
+        td { padding: 16px 24px; border-bottom: 1px solid var(--border); color: var(--text-primary); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--bg-app); cursor: pointer; }
+
+        /* Components: Badges */
+        .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; letter-spacing: 0.02em; text-transform: capitalize; }
+        .badge-paid { background: var(--success-bg); color: var(--success-text); }
+        .badge-draft { background: var(--warning-bg); color: var(--warning-text); }
+        .badge-sent { background: var(--primary-50); color: var(--primary-600); }
+        .badge-overdue { background: var(--danger-bg); color: var(--danger-text); }
+        .badge-partial { background: var(--warning-bg); color: var(--warning-text); }
+
+        /* App Layout */
+        .sidebar { width: 250px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; }
+        .sidebar-header { padding: 24px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 20px; color: var(--primary-600); }
+        .nav { flex: 1; padding: 0 16px; display: flex; flex-direction: column; gap: 4px; }
+        .nav-item { padding: 10px 12px; border-radius: var(--radius); color: var(--text-secondary); text-decoration: none; display: flex; align-items: center; gap: 12px; font-weight: 500; transition: all 0.2s; }
+        .nav-item:hover { background: var(--bg-app); color: var(--text-primary); }
+        .nav-item.active { background: var(--primary-50); color: var(--primary-600); }
+        .user-profile { padding: 20px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .avatar { width: 32px; height: 32px; background: var(--primary-100); color: var(--primary-600); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+        .user-info { flex: 1; overflow: hidden; }
+        .user-name { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-email { color: var(--text-secondary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .topbar { height: 64px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: flex-end; padding: 0 32px; }
+        .content-area { flex: 1; overflow-y: auto; padding: 32px; }
+        .content-container { max-width: 1000px; margin: 0 auto; }
         
-        /* 7. Responsive */
-        @media (max-width: 768px) {
-            .app-layout { flex-direction: column; }
-            .sidebar {
-                position: fixed; top: 0; left: 0; bottom: 0; z-index: 1000;
-                transform: translateX(-100%);
-            }
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none;}
-            .sidebar-overlay.open { display: block; }
-            
-            .main-content { height: calc(100vh - var(--header-height)); margin-top: var(--header-height); }
-            .mobile-header {
-                position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-                height: var(--header-height); background-color: var(--bg-surface);
-                border-bottom: 1px solid var(--border-primary);
-                display: flex; align-items: center; justify-content: space-between;
-                padding: 0 var(--space-4);
-            }
-            .page-header { display: none; }
-            .page-content-container { padding: var(--space-4); }
-        }
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+
+        /* Screens */
+        .screen { display: none; animation: fadeIn 0.2s ease; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Dashboard Specific */
+        .stat-card { padding: 24px; }
+        .stat-title { color: var(--text-secondary); font-weight: 500; font-size: 14px; margin-bottom: 8px; }
+        .stat-value { font-size: 32px; font-weight: 600; color: var(--text-primary); }
+
+        /* Form Specific (New Invoice) */
+        .line-items-table { margin-bottom: 24px; }
+        .line-items-table th { background: transparent; border-bottom: 2px solid var(--border); padding: 8px 12px; }
+        .line-items-table td { border-bottom: 1px solid var(--border); padding: 12px; }
+        .totals-section { width: 300px; margin-left: auto; background: var(--bg-app); padding: 20px; border-radius: var(--radius-lg); }
+        .totals-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+        .totals-row.grand-total { border-top: 1px solid var(--border); padding-top: 12px; font-weight: 600; font-size: 18px; margin-bottom: 0; }
+
+        /* Detail View Specific */
+        .invoice-paper { background: white; max-width: 800px; margin: 0 auto; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid var(--border); }
+        .invoice-header-paper { display: flex; justify-content: space-between; margin-bottom: 48px; }
+        .invoice-meta { text-align: right; }
+
+        /* Auth Layout Override */
+        #layout-auth { position: fixed; inset: 0; background: var(--bg-app); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .auth-card { width: 400px; background: white; padding: 40px; border-radius: var(--radius-lg); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid var(--border); text-align: center; }
+        .auth-logo { color: var(--primary-600); margin-bottom: 24px; display: inline-flex; align-items: center; gap: 8px; font-size: 24px; font-weight: 700; }
+        
+        .hidden { display: none !important; }
+
+        /* SVG definitions */
+        svg.lucide { display: inline-block; vertical-align: middle; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
-    <div class="app-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="app-sidebar">
-            <div class="sidebar-header">
-                <a href="#" class="sidebar-logo nav-link" data-page="page-dashboard">
-                    <i data-lucide="zap" style="color: var(--accent-primary);"></i>
-                    <span>Invoicer</span>
-                </a>
+    <!-- SVG Sprites (Hidden) to keep markup clean -->
+    <svg width="0" height="0" class="hidden">
+        <defs>
+            <g id="icon-logo"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></g>
+            <g id="icon-home"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></g>
+            <g id="icon-file"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></g>
+            <g id="icon-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>
+            <g id="icon-package"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></g>
+            <g id="icon-settings"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></g>
+            <g id="icon-plus"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></g>
+            <g id="icon-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></g>
+            <g id="icon-send"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></g>
+        </defs>
+    </svg>
+
+    <!-- App Shell -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <svg class="icon lucide"><use href="#icon-logo"/></svg> Invoicer
+        </div>
+        <nav class="nav">
+            <a href="#" class="nav-item active" onclick="switchScreen('dashboard', this)"><svg class="icon lucide"><use href="#icon-home"/></svg> Dashboard</a>
+            <a href="#" class="nav-item" onclick="switchScreen('invoices', this)"><svg class="icon lucide"><use href="#icon-file"/></svg> Invoices</a>
+            <a href="#" class="nav-item" onclick="switchScreen('clients', this)"><svg class="icon lucide"><use href="#icon-users"/></svg> Clients</a>
+            <a href="#" class="nav-item" onclick="switchScreen('catalog', this)"><svg class="icon lucide"><use href="#icon-package"/></svg> Catalog</a>
+            <a href="#" class="nav-item" onclick="switchScreen('settings', this)"><svg class="icon lucide"><use href="#icon-settings"/></svg> Settings</a>
+        </nav>
+        <div class="user-profile" onclick="toggleAuth()">
+            <div class="avatar">AW</div>
+            <div class="user-info">
+                <div class="user-name">Acme Web Design</div>
+                <div class="user-email">admin@acme.com</div>
             </div>
-            <ul class="main-nav">
-                <li class="nav-item"><a href="#" class="nav-link active" data-page="page-dashboard"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" data-page="page-invoices-list"><i data-lucide="file-text"></i><span>Invoices</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" data-page="page-clients-list"><i data-lucide="users"></i><span>Clients</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" data-page="page-catalog"><i data-lucide="book"></i><span>Catalog</span></a></li>
-            </ul>
-            <ul class="secondary-nav">
-                <li class="nav-item"><a href="#" class="nav-link" data-page="page-settings"><i data-lucide="settings"></i><span>Settings</span></a></li>
-                <li class="nav-item"><a href="#" class="nav-link" data-page="page-login"><i data-lucide="log-out"></i><span>Logout</span></a></li>
-            </ul>
-        </aside>
+        </div>
+    </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <header class="mobile-header">
-                <button class="btn-icon" id="mobile-menu-toggle"><i data-lucide="menu"></i></button>
-                <h2 id="mobile-page-title" style="font-size: 18px;">Dashboard</h2>
-                <a href="#" class="btn-icon nav-link" data-page="page-invoice-new"><i data-lucide="plus"></i></a>
-            </header>
+    <main class="main">
+        <div class="content-area">
+            <div class="content-container">
 
-            <!-- ### DASHBOARD ### -->
-            <div id="page-dashboard" class="page-content active">
-                <div class="page-header">
-                    <h1>Dashboard</h1>
-                    <button class="btn btn-primary nav-link" data-page="page-invoice-new"><i data-lucide="plus" style="width:18px;"></i> New Invoice</button>
-                </div>
-                <div class="page-content-container">
-                    <div class="stats-grid">
+                <!-- SCREEN: Dashboard -->
+                <section id="dashboard" class="screen active">
+                    <div class="header-actions">
+                        <h1>Overview</h1>
+                        <button class="btn btn-primary" onclick="switchScreen('new-invoice', null)"><svg class="icon lucide"><use href="#icon-plus"/></svg> New Invoice</button>
+                    </div>
+                    
+                    <div class="grid-3" style="margin-bottom: 32px;">
                         <div class="card stat-card">
-                            <div class="label">Total Outstanding</div>
-                            <div class="value">$12,450.00</div>
+                            <div class="stat-title">Total Outstanding</div>
+                            <div class="stat-value">$4,250.00</div>
                         </div>
                         <div class="card stat-card">
-                            <div class="label">Total Overdue</div>
-                            <div class="value" style="color: var(--status-overdue-fg);">$3,200.00</div>
+                            <div class="stat-title">Overdue</div>
+                            <div class="stat-value" style="color: var(--danger-text)">$850.00</div>
                         </div>
                         <div class="card stat-card">
-                            <div class="label">Paid This Month</div>
-                            <div class="value">$21,800.50</div>
+                            <div class="stat-title">Paid This Month</div>
+                            <div class="stat-value" style="color: var(--success-text)">$12,400.00</div>
                         </div>
                     </div>
-                    <div class="widget">
-                        <div class="widget-header">
-                            <h3>Recent Invoices</h3>
-                            <a href="#" class="nav-link" data-page="page-invoices-list">View all</a>
+
+                    <h2>Recent Invoices</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Client</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr onclick="switchScreen('invoice-detail', null)">
+                                    <td>INV-0042</td>
+                                    <td>Stark Industries</td>
+                                    <td>Oct 12, 2026</td>
+                                    <td>$3,400.00</td>
+                                    <td><span class="badge badge-sent">Sent</span></td>
+                                </tr>
+                                <tr onclick="switchScreen('invoice-detail', null)">
+                                    <td>INV-0041</td>
+                                    <td>Wayne Enterprises</td>
+                                    <td>Oct 10, 2026</td>
+                                    <td>$850.00</td>
+                                    <td><span class="badge badge-overdue">Overdue</span></td>
+                                </tr>
+                                <tr onclick="switchScreen('invoice-detail', null)">
+                                    <td>INV-0040</td>
+                                    <td>Globex Corp</td>
+                                    <td>Oct 01, 2026</td>
+                                    <td>$1,200.00</td>
+                                    <td><span class="badge badge-paid">Paid</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- SCREEN: Invoices List -->
+                <section id="invoices" class="screen">
+                    <div class="header-actions">
+                        <h1>Invoices</h1>
+                        <button class="btn btn-primary" onclick="switchScreen('new-invoice', null)"><svg class="icon lucide"><use href="#icon-plus"/></svg> New Invoice</button>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                        <input type="text" class="form-input" placeholder="Search invoices..." style="max-width: 300px;">
+                        <select class="form-select" style="max-width: 150px;">
+                            <option>All Statuses</option>
+                            <option>Draft</option>
+                            <option>Sent</option>
+                            <option>Paid</option>
+                        </select>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Client</th>
+                                    <th>Issue Date</th>
+                                    <th>Due Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr onclick="switchScreen('invoice-detail', null)">
+                                    <td>INV-0043</td>
+                                    <td>Initech</td>
+                                    <td>Oct 15, 2026</td>
+                                    <td>Oct 30, 2026</td>
+                                    <td>$2,100.00</td>
+                                    <td><span class="badge badge-draft">Draft</span></td>
+                                </tr>
+                                <tr onclick="switchScreen('invoice-detail', null)">
+                                    <td>INV-0042</td>
+                                    <td>Stark Industries</td>
+                                    <td>Oct 12, 2026</td>
+                                    <td>Nov 11, 2026</td>
+                                    <td>$3,400.00</td>
+                                    <td><span class="badge badge-sent">Sent</span></td>
+                                </tr>
+                                <tr onclick="switchScreen('invoice-detail', null)">
+                                    <td>INV-0041</td>
+                                    <td>Wayne Enterprises</td>
+                                    <td>Oct 10, 2026</td>
+                                    <td>Oct 10, 2026</td>
+                                    <td>$850.00</td>
+                                    <td><span class="badge badge-overdue">Overdue</span></td>
+                                </tr>
+                                <tr onclick="switchScreen('invoice-detail', null)">
+                                    <td>INV-0040</td>
+                                    <td>Globex Corp</td>
+                                    <td>Oct 01, 2026</td>
+                                    <td>Oct 15, 2026</td>
+                                    <td>$1,200.00</td>
+                                    <td><span class="badge badge-paid">Paid</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- SCREEN: New Invoice Form -->
+                <section id="new-invoice" class="screen">
+                    <div class="header-actions">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <button class="btn btn-secondary" onclick="switchScreen('invoices', document.querySelectorAll('.nav-item')[1])">Back</button>
+                            <h1>Create Invoice</h1>
                         </div>
+                        <div style="display: flex; gap: 12px;">
+                            <button class="btn btn-secondary">Save Draft</button>
+                            <button class="btn btn-primary" onclick="switchScreen('invoice-detail', null)">Save & Preview</button>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Client</label>
+                                <select class="form-select">
+                                    <option value="" disabled selected>Select a client...</option>
+                                    <option>Stark Industries</option>
+                                    <option>Wayne Enterprises</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Invoice Number</label>
+                                <input type="text" class="form-input" value="INV-0044">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Issue Date</label>
+                                <input type="date" class="form-input" value="2026-10-15">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Due Date</label>
+                                <input type="date" class="form-input" value="2026-11-14">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2 style="font-size: 16px;">Line Items</h2>
+                        <table class="line-items-table" style="width: 100%; text-align: left;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50%;">Description</th>
+                                    <th style="width: 15%;">Quantity</th>
+                                    <th style="width: 20%;">Price</th>
+                                    <th style="width: 15%; text-align: right;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="text" class="form-input" placeholder="Item description"></td>
+                                    <td><input type="number" class="form-input" value="1"></td>
+                                    <td><input type="number" class="form-input" placeholder="0.00"></td>
+                                    <td style="text-align: right; padding-right: 12px;">$0.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button class="btn btn-secondary" style="margin-bottom: 32px;"><svg class="icon lucide"><use href="#icon-plus"/></svg> Add Line Item</button>
+
+                        <div class="totals-section">
+                            <div class="totals-row">
+                                <span>Subtotal</span>
+                                <span>$0.00</span>
+                            </div>
+                            <div class="totals-row">
+                                <span>Tax (0%)</span>
+                                <span>$0.00</span>
+                            </div>
+                            <div class="totals-row grand-total">
+                                <span>Total</span>
+                                <span>$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SCREEN: Invoice Detail View -->
+                <section id="invoice-detail" class="screen">
+                    <div class="header-actions">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <button class="btn btn-secondary" onclick="switchScreen('invoices', document.querySelectorAll('.nav-item')[1])">Back</button>
+                            <span class="badge badge-sent" style="font-size: 14px; padding: 4px 12px;">Sent</span>
+                        </div>
+                        <div style="display: flex; gap: 12px;">
+                            <button class="btn btn-secondary"><svg class="icon lucide"><use href="#icon-download"/></svg> PDF</button>
+                            <button class="btn btn-secondary">Record Payment</button>
+                            <button class="btn btn-primary"><svg class="icon lucide"><use href="#icon-send"/></svg> Send via Email</button>
+                        </div>
+                    </div>
+
+                    <div class="invoice-paper">
+                        <div class="invoice-header-paper">
+                            <div>
+                                <h2 style="font-size: 24px; color: var(--text-primary); margin-bottom: 4px;">Acme Web Design</h2>
+                                <p style="color: var(--text-secondary); font-size: 14px;">admin@acme.com<br>123 Startup Ave<br>San Francisco, CA 94105</p>
+                            </div>
+                            <div class="invoice-meta">
+                                <h1 style="font-size: 32px; color: var(--primary-600); margin-bottom: 8px;">INVOICE</h1>
+                                <p style="font-size: 14px;"><strong>Invoice #:</strong> INV-0042</p>
+                                <p style="font-size: 14px;"><strong>Issue Date:</strong> Oct 12, 2026</p>
+                                <p style="font-size: 14px;"><strong>Due Date:</strong> Nov 11, 2026</p>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 48px; padding-top: 24px; border-top: 1px solid var(--border);">
+                            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 4px;">Bill To:</p>
+                            <h3 style="font-size: 16px; margin-bottom: 4px;">Stark Industries</h3>
+                            <p style="font-size: 14px; color: var(--text-secondary);">tony@stark.com<br>10880 Malibu Point<br>Malibu, CA 90265</p>
+                        </div>
+
+                        <table style="margin-bottom: 48px;">
+                            <thead>
+                                <tr>
+                                    <th style="padding-left: 0;">Description</th>
+                                    <th>Qty</th>
+                                    <th>Unit Price</th>
+                                    <th style="text-align: right; padding-right: 0;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding-left: 0;">Website Redesign</td>
+                                    <td>1</td>
+                                    <td>$3,000.00</td>
+                                    <td style="text-align: right; padding-right: 0;">$3,000.00</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-left: 0;">SEO Optimization</td>
+                                    <td>10</td>
+                                    <td>$40.00</td>
+                                    <td style="text-align: right; padding-right: 0;">$400.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div style="display: flex; justify-content: flex-end;">
+                            <div style="width: 300px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">
+                                    <span>Subtotal</span>
+                                    <span>$3,400.00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">
+                                    <span>Tax (0%)</span>
+                                    <span>$0.00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border); font-size: 18px; font-weight: 600;">
+                                    <span>Total Due</span>
+                                    <span>$3,400.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SCREEN: Clients -->
+                <section id="clients" class="screen">
+                    <div class="header-actions">
+                        <h1>Clients</h1>
+                        <button class="btn btn-primary"><svg class="icon lucide"><use href="#icon-plus"/></svg> New Client</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name / Company</th>
+                                    <th>Email</th>
+                                    <th>Total Invoiced</th>
+                                    <th>Outstanding</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Stark Industries</strong></td>
+                                    <td>ap@stark.com</td>
+                                    <td>$15,000.00</td>
+                                    <td>$3,400.00</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Wayne Enterprises</strong></td>
+                                    <td>bruce@wayne.com</td>
+                                    <td>$8,500.00</td>
+                                    <td><span style="color: var(--danger-text)">$850.00</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- SCREEN: Catalog -->
+                <section id="catalog" class="screen">
+                    <div class="header-actions">
+                        <h1>Item Catalog</h1>
+                        <button class="btn btn-primary"><svg class="icon lucide"><use href="#icon-plus"/></svg> New Item</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Description</th>
+                                    <th>Default Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Hourly Rate (Dev)</strong></td>
+                                    <td style="color: var(--text-secondary)">Standard development hour</td>
+                                    <td>$150.00</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>SEO Audit</strong></td>
+                                    <td style="color: var(--text-secondary)">Comprehensive site review</td>
+                                    <td>$500.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- SCREEN: Settings -->
+                <section id="settings" class="screen">
+                    <div class="header-actions">
+                        <h1>Settings</h1>
+                    </div>
+                    
+                    <div class="grid-2">
                         <div class="card">
-                           <table>
-                                <thead><tr><th>Invoice</th><th>Client</th><th>Amount</th><th>Status</th><th>Due Date</th></tr></thead>
-                                <tbody>
-                                    <tr><td><a href="#" class="nav-link" data-page="page-invoice-detail">INV-0024</a></td><td>TechCorp</td><td>$5,000.00</td><td><span class="status-badge paid">Paid</span></td><td>Feb 28, 2026</td></tr>
-                                    <tr><td><a href="#" class="nav-link" data-page="page-invoice-detail">INV-0023</a></td><td>Innovate LLC</td><td>$3,200.00</td><td><span class="status-badge overdue">Overdue</span></td><td>Jan 15, 2026</td></tr>
-                                    <tr><td><a href="#" class="nav-link" data-page="page-invoice-detail">INV-0022</a></td><td>DataSys</td><td>$4,250.00</td><td><span class="status-badge sent">Sent</span></td><td>Mar 20, 2026</td></tr>
-                                    <tr><td><a href="#" class="nav-link" data-page="page-invoice-detail">INV-0021</a></td><td>Creative Inc.</td><td>$5,000.00</td><td><span class="status-badge partial">Partial</span></td><td>Mar 10, 2026</td></tr>
-                                </tbody>
-                           </table>
+                            <h2>Business Profile</h2>
+                            <div class="form-group">
+                                <label class="form-label">Business Name</label>
+                                <input type="text" class="form-input" value="Acme Web Design">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Contact Email</label>
+                                <input type="email" class="form-input" value="admin@acme.com">
+                            </div>
+                            <button class="btn btn-primary">Save Profile</button>
+                        </div>
+                        
+                        <div class="card">
+                            <h2>Security</h2>
+                            <div class="form-group">
+                                <label class="form-label">Current Password</label>
+                                <input type="password" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">New Password</label>
+                                <input type="password" class="form-input">
+                            </div>
+                            <button class="btn btn-secondary">Update Password</button>
                         </div>
                     </div>
-                </div>
+                </section>
+
             </div>
+        </div>
+    </main>
+
+    <!-- AUTHENTICATION LAYOUT (Hidden by default, overlays everything) -->
+    <div id="layout-auth" class="hidden">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <svg class="icon lucide" style="width: 28px; height: 28px;"><use href="#icon-logo"/></svg> Invoicer
+            </div>
+            <h1 style="margin-bottom: 8px;">Welcome back</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Enter your credentials to access your account.</p>
             
-            <!-- ### INVOICES LIST ### -->
-            <div id="page-invoices-list" class="page-content">
-                <div class="page-header"><h1>Invoices</h1><button class="btn btn-primary nav-link" data-page="page-invoice-new"><i data-lucide="plus" style="width:18px;"></i> New Invoice</button></div>
-                <div class="page-content-container">
-                    <div class="card">
-                        <!-- Toolbar would go here -->
-                        <table>
-                            <thead><tr><th>Number</th><th>Client</th><th>Issue Date</th><th>Total</th><th>Status</th><th></th></tr></thead>
-                            <tbody>
-                                <tr><td><a href="#" class="nav-link" data-page="page-invoice-detail">INV-0024</a></td><td>TechCorp</td><td>Feb 1, 2026</td><td>$5,000.00</td><td><span class="status-badge paid">Paid</span></td><td><button class="btn-icon"><i data-lucide="more-vertical"></i></button></td></tr>
-                                <tr><td><a href="#" class="nav-link" data-page="page-invoice-detail">INV-0023</a></td><td>Innovate LLC</td><td>Dec 15, 2025</td><td>$3,200.00</td><td><span class="status-badge overdue">Overdue</span></td><td><button class="btn-icon"><i data-lucide="more-vertical"></i></button></td></tr>
-                                <tr><td><a href="#" class="nav-link" data-page="page-invoice-detail">INV-0022</a></td><td>DataSys</td><td>Feb 20, 2026</td><td>$4,250.00</td><td><span class="status-badge sent">Sent</span></td><td><button class="btn-icon"><i data-lucide="more-vertical"></i></button></td></tr>
-                                 <tr><td><a href="#" class="nav-link" data-page="page-invoice-detail">INV-0021</a></td><td>Creative Inc.</td><td>Feb 10, 2026</td><td>$5,000.00</td><td><span class="status-badge partial">Partial</span></td><td><button class="btn-icon"><i data-lucide="more-vertical"></i></button></td></tr>
-                                 <tr><td><a href="#" class="nav-link" data-page="page-invoice-detail">INV-0020</a></td><td>WebFlow</td><td>Jan 25, 2026</td><td>$1,200.00</td><td><span class="status-badge draft">Draft</span></td><td><button class="btn-icon"><i data-lucide="more-vertical"></i></button></td></tr>
-                                  <tr><td><a href="#" class="nav-link" data-page="page-invoice-detail">INV-0019</a></td><td>Stripe</td><td>Jan 1, 2026</td><td>$10,000.00</td><td><span class="status-badge void">Void</span></td><td><button class="btn-icon"><i data-lucide="more-vertical"></i></button></td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <form onsubmit="event.preventDefault(); toggleAuth();" style="text-align: left;">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" value="admin@acme.com" required>
                 </div>
-            </div>
-
-            <!-- ### INVOICE DETAIL ### -->
-            <div id="page-invoice-detail" class="page-content">
-                <div class="page-header">
-                    <div style="display:flex; align-items:center; gap:var(--space-4);">
-                        <a href="#" class="btn-icon nav-link" data-page="page-invoices-list"><i data-lucide="arrow-left"></i></a>
-                        <div>
-                            <h1>Invoice INV-0023</h1>
-                            <span class="status-badge overdue" style="margin-top: var(--space-2);">Overdue</span>
-                        </div>
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between;">
+                        <label class="form-label">Password</label>
+                        <a href="#" style="font-size: 12px; color: var(--primary-600); text-decoration: none;">Forgot password?</a>
                     </div>
-                    <div>
-                        <button class="btn btn-secondary modal-trigger" data-modal="modal-send-invoice">Send</button>
-                        <button class="btn btn-primary modal-trigger" data-modal="modal-record-payment">Record Payment</button>
-                    </div>
+                    <input type="password" class="form-input" value="password123" required>
                 </div>
-                <div class="page-content-container">
-                    <div class="card">
-                        <div class="invoice-detail-header">
-                            <div>
-                                <h2 style="font-size: 20px;">Innovate LLC</h2>
-                                <p>123 Innovation Dr, Tech City</p>
-                            </div>
-                            <div style="text-align: right;">
-                                <h3 style="color: var(--text-primary); font-size: 24px;">My Awesome Company</h3>
-                                <p>456 Sideproject Rd, Freelanceville</p>
-                            </div>
-                        </div>
-                        <div class="invoice-meta-grid">
-                            <div>
-                                <p><strong>Issue Date:</strong> Dec 15, 2025</p>
-                                <p><strong>Due Date:</strong> Jan 15, 2026</p>
-                            </div>
-                            <div style="text-align: right;">
-                                <p><strong>Invoice Number:</strong> INV-0023</p>
-                            </div>
-                        </div>
-                        <table class="line-items-table">
-                            <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th style="text-align:right;">Amount</th></tr></thead>
-                            <tbody>
-                                <tr><td>Backend API Development</td><td>40</td><td>$80.00</td><td style="text-align:right;">$3,200.00</td></tr>
-                            </tbody>
-                        </table>
-                        <div class="invoice-totals">
-                            <div style="width: 250px; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2);">
-                                <span>Subtotal</span><span style="text-align:right;">$3,200.00</span>
-                                <span>Tax (0%)</span><span style="text-align:right;">$0.00</span>
-                                <strong style="color: var(--text-primary); font-size: 18px;">Total</strong><strong style="text-align:right; color: var(--text-primary); font-size: 18px;">$3,200.00</strong>
-                                <span>Amount Paid</span><span style="text-align:right;">$0.00</span>
-                                <strong style="color: var(--text-primary); font-size: 18px;">Amount Due</strong><strong style="text-align:right; color: var(--text-primary); font-size: 18px;">$3,200.00</strong>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="widget">
-                        <div class="widget-header"><h3>Payment History</h3></div>
-                        <div class="card"><p>No payments recorded yet.</p></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- ### NEW/EDIT INVOICE ### -->
-            <div id="page-invoice-new" class="page-content">
-                 <div class="page-header"><h1>New Invoice</h1><button class="btn btn-primary">Save Draft</button></div>
-                 <div class="page-content-container">
-                    <div class="card" style="max-width: 900px; margin: 0 auto;">
-                        <!-- Form will go here -->
-                        <p>Invoice form under construction.</p>
-                    </div>
-                 </div>
-            </div>
-            
-            <!-- ### CLIENTS LIST ### -->
-            <div id="page-clients-list" class="page-content">
-                <div class="page-header"><h1>Clients</h1><button class="btn btn-primary modal-trigger" data-modal="modal-edit-client"><i data-lucide="plus" style="width:18px;"></i> New Client</button></div>
-                <div class="page-content-container">
-                    <div class="card">
-                        <table>
-                            <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Total Invoiced</th><th></th></tr></thead>
-                            <tbody>
-                                <tr><td><a href="#" class="nav-link" data-page="page-client-detail">John Doe</a></td><td>TechCorp</td><td>john@techcorp.com</td><td>$15,000.00</td><td><button class="btn-icon"><i data-lucide="more-vertical"></i></button></td></tr>
-                                <tr><td><a href="#" class="nav-link" data-page="page-client-detail">Jane Smith</a></td><td>Innovate LLC</td><td>jane@innovate.com</td><td>$8,200.00</td><td><button class="btn-icon"><i data-lucide="more-vertical"></i></button></td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ### CLIENT DETAIL ### -->
-             <div id="page-client-detail" class="page-content">
-                 <div class="page-header">
-                     <a href="#" class="btn-icon nav-link" data-page="page-clients-list"><i data-lucide="arrow-left"></i></a>
-                     <h1>John Doe</h1>
-                 </div>
-                 <div class="page-content-container"><p>Client Detail page under construction.</p></div>
-            </div>
-            
-            <!-- ### CATALOG ### -->
-            <div id="page-catalog" class="page-content">
-                <div class="page-header"><h1>Catalog</h1><button class="btn btn-primary modal-trigger" data-modal="modal-edit-item"><i data-lucide="plus" style="width:18px;"></i> New Item</button></div>
-                 <div class="page-content-container"><div class="card"><p>Catalog page under construction.</p></div></div>
-            </div>
-
-            <!-- ### SETTINGS ### -->
-            <div id="page-settings" class="page-content">
-                <div class="page-header"><h1>Settings</h1></div>
-                <div class="page-content-container"><div class="card"><p>Settings page under construction.</p></div></div>
-            </div>
-
-            <!-- ### AUTH PAGES ### -->
-            <div id="page-login" class="page-content auth-wrapper">
-                <div class="card auth-card">
-                    <div style="text-align:center; margin-bottom:var(--space-8);">
-                        <a href="#" class="sidebar-logo"><i data-lucide="zap" style="color: var(--accent-primary);"></i><span>Invoicer</span></a>
-                        <h2 style="margin-top:var(--space-4);">Sign in to your account</h2>
-                    </div>
-                    <form>
-                        <div class="form-group"><label class="form-label" for="email">Email</label><input type="email" id="email" class="form-input" placeholder="you@example.com"></div>
-                        <div class="form-group"><label class="form-label" for="password">Password</label><input type="password" id="password" class="form-input"></div>
-                        <button type="submit" class="btn btn-primary" style="width:100%; padding:var(--space-3);">Sign In</button>
-                    </form>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- Modals -->
-    <div id="modal-record-payment" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header"><h3>Record Payment</h3><button class="btn-icon modal-close"><i data-lucide="x"></i></button></div>
-            <form>
-                <div class="form-group"><label class="form-label">Amount</label><input type="text" class="form-input" value="$3,200.00"></div>
-                <div class="form-group"><label class="form-label">Date</label><input type="date" class="form-input" value="2026-03-06"></div>
-                <div class="form-group"><label class="form-label">Method</label>
-                    <select class="form-select">
-                        <option>Bank Transfer</option><option>Credit Card</option><option>Cash</option><option>Other</option>
-                    </select>
-                </div>
-                <div style="display:flex; justify-content:flex-end; gap: var(--space-3); margin-top:var(--space-6);">
-                    <button type="button" class="btn btn-secondary modal-close">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Payment</button>
-                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">Sign In</button>
             </form>
+            
+            <p style="margin-top: 24px; font-size: 14px; color: var(--text-secondary);">
+                Don't have an account? <a href="#" style="color: var(--primary-600); font-weight: 500; text-decoration: none;">Register</a>
+            </p>
         </div>
     </div>
-    
-    <div id="modal-send-invoice" class="modal-overlay">
-        <div class="modal-content"><p>Send Invoice Modal</p><button class="btn modal-close">Close</button></div>
-    </div>
-    <div id="modal-edit-client" class="modal-overlay">
-        <div class="modal-content"><p>Edit Client Modal</p><button class="btn modal-close">Close</button></div>
-    </div>
-    <div id="modal-edit-item" class="modal-overlay">
-        <div class="modal-content"><p>Edit Catalog Item Modal</p><button class="btn modal-close">Close</button></div>
-    </div>
 
-
-    <!-- Lucide Icons & JS -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- UI Logic -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // 1. Initialize Lucide Icons
-            lucide.createIcons({ attrs: { 'stroke-width': 1.5 } });
-
-            const navLinks = document.querySelectorAll('.nav-link');
-            const pageContents = document.querySelectorAll('.page-content');
-            const mobilePageTitle = document.getElementById('mobile-page-title');
-
-            // 2. Page Navigation
-            function showPage(pageId) {
-                pageContents.forEach(p => p.classList.remove('active'));
-                const newPage = document.getElementById(pageId);
-                if (newPage) newPage.classList.add('active');
-
-                // Update active link state
-                navLinks.forEach(link => {
-                    if (link.dataset.page === pageId) {
-                        link.classList.add('active');
-                        if(mobilePageTitle && link.querySelector('span')) {
-                            mobilePageTitle.textContent = link.querySelector('span').textContent;
-                        }
-                    } else {
-                        link.classList.remove('active');
-                    }
-                });
-
-                // Close sidebar on mobile after nav
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('open');
-                    sidebarOverlay.classList.remove('open');
-                }
-            }
-
-            navLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const pageId = link.dataset.page;
-                    if (pageId && document.getElementById(pageId)) {
-                        showPage(pageId);
-                    } else if (pageId) {
-                        console.warn(`Page with id "${pageId}" not found.`);
-                    }
-                });
-            });
-
-            // 3. Mobile Sidebar Toggle
-            const sidebar = document.getElementById('app-sidebar');
-            const sidebarOverlay = document.getElementById('sidebar-overlay');
-            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-
-            function toggleSidebar() {
-                sidebar.classList.toggle('open');
-                sidebarOverlay.classList.toggle('open');
-            }
-
-            if(mobileMenuToggle && sidebar) mobileMenuToggle.addEventListener('click', toggleSidebar);
-            if(sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
-
-            // 4. Modal Handling
-            const modalTriggers = document.querySelectorAll('.modal-trigger');
-            const modalCloses = document.querySelectorAll('.modal-close');
-            const modalOverlays = document.querySelectorAll('.modal-overlay');
-
-            modalTriggers.forEach(trigger => {
-                trigger.addEventListener('click', () => {
-                    const modalId = trigger.dataset.modal;
-                    const modal = document.getElementById(modalId);
-                    if (modal) modal.classList.add('active');
-                });
-            });
+        function switchScreen(screenId, navElement) {
+            // Update screens
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
             
-            function closeModal(modal) {
-                modal.classList.remove('active');
+            // Update active state in sidebar nav if provided
+            if (navElement) {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                navElement.classList.add('active');
             }
+            
+            // Scroll to top
+            document.querySelector('.content-area').scrollTop = 0;
+        }
 
-            modalCloses.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    closeModal(btn.closest('.modal-overlay'));
-                });
-            });
-
-            modalOverlays.forEach(overlay => {
-                overlay.addEventListener('click', (e) => {
-                    if (e.target === overlay) closeModal(overlay);
-                });
-            });
-
-            // Set initial page
-            showPage('page-dashboard');
-        });
+        function toggleAuth() {
+            const authLayout = document.getElementById('layout-auth');
+            if (authLayout.classList.contains('hidden')) {
+                authLayout.classList.remove('hidden');
+            } else {
+                authLayout.classList.add('hidden');
+            }
+        }
+        
+        // Setup initial demo state (Optional, just ensuring UI is interactive)
     </script>
 </body>
 </html>

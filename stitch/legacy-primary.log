@@ -1,0 +1,33 @@
+YOLO mode is enabled. All tool calls will be automatically approved.
+Loaded cached credentials.
+YOLO mode is enabled. All tool calls will be automatically approved.
+Loading extension: Stitch
+Model set to gemini-3.1-pro-preview
+I'll start by reading the requested documents (`STACK.md`, `research-brief.md`, and `functional-spec.md`) to understand the constraints, market positioning, and required app screens.
+I have successfully created the 3 requested files to form a coherent, premium product family for the "Invoicer" application.
+
+Here's an overview of the deliverables:
+
+1. **`design-brief.md`**
+   - Contains the unified design system shared across both prototypes.
+   - Includes CSS custom properties (variables) for the color palette (`--primary-*`, semantic colors like success/warning/danger, surface colors).
+   - Details the typography scale, spacing system, component styling guidelines (elevation, border radii), and responsive strategy.
+
+2. **`landing-prototype.html`**
+   - A complete marketing website mockup using plain HTML/CSS.
+   - Features a clean, trusting aesthetic built around a hero section with a CSS-based mock UI representation.
+   - Includes full sections for "Features" (3-column grid) and "Pricing" (Free vs. Pro tiers) to match the competitor research positioning against FreshBooks and Zoho.
+   - Fully responsive, collapsing into stacked layouts on mobile.
+
+3. **`app-prototype.html`**
+   - A comprehensive single-file App UI prototype covering the screens outlined in the functional spec.
+   - **Interactive Elements**: Includes lightweight JavaScript to allow you to click the left sidebar navigation links and instantly switch between screens without page reloads.
+   - **Screens Included**: 
+     - **Dashboard**: Stats and recent invoices.
+     - **Invoices**: Searchable table with status badges (Draft, Sent, Paid, Overdue).
+     - **New Invoice**: Complex form with line items, dropdowns, and live-looking totals.
+     - **Invoice Detail**: A beautiful "paper" view for the finalized invoice alongside action buttons (PDF, Send).
+     - **Clients** & **Catalog**: Data tables with dummy data.
+     - **Settings**: Profile and Security form cards.
+   - **Auth Overlay**: You can click the user profile at the bottom left of the sidebar to toggle the Auth layout (Login/Register/Forgot Password simulation) over the app.
+   - Uses zero external dependencies (no external images or fonts, inline SVGs used for iconography) so it functions seamlessly in isolated environments like Stitch.
