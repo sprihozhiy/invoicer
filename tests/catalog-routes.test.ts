@@ -39,7 +39,7 @@ describe("F11 catalog route migration tests", () => {
     vi.restoreAllMocks();
   });
 
-  it("GET /api/catalog lists all catalogs for user and returns { catalogs }", async () => {
+  it("GET /api/catalog lists all catalogs for user and returns { data }", async () => {
     const { db, sqlite, auth, catalogRoute } = await loadCatalogRoutes();
     try {
       const user = await seedUser(db, { email: "owner@example.com" });
@@ -54,10 +54,34 @@ describe("F11 catalog route migration tests", () => {
       expect(response.status).toBe(200);
 
       const json = await response.json();
-      expect(Array.isArray(json.catalogs)).toBe(true);
-      expect(json.catalogs).toHaveLength(2);
-      expect(json.catalogs.every((row: { userId: string }) => row.userId === user.id)).toBe(true);
-      expect(json.data).toBeUndefined();
+      expect(Array.isArray(json.data)).toBe(true);
+      expect(json.data).toHaveLength(2);
+      expect(json.data.every((row: { userId: string }) => row.userId === user.id)).toBe(true);
+      expect(json.catalogs).toBeUndefined();
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it("GET /api/catalog supports search parameter filtering by name and description", async () => {
+    const { db, sqlite, auth, catalogRoute } = await loadCatalogRoutes();
+    try {
+      const user = await seedUser(db, { email: "searcher@example.com" });
+
+      await seedCatalogItem(db, user.id, { name: "Design Work", description: "Hourly rate" });
+      await seedCatalogItem(db, user.id, { name: "Consulting", description: "Design architecture review" });
+      await seedCatalogItem(db, user.id, { name: "Photography", description: "Event coverage" });
+
+      const { accessToken } = auth.issueSession(user.id);
+      const response = await catalogRoute.GET(
+        authedRequest("http://localhost/api/catalog?search=design", accessToken),
+      );
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(Array.isArray(json.data)).toBe(true);
+      // "Design Work" matches by name; "Consulting" matches by description
+      expect(json.data).toHaveLength(2);
     } finally {
       sqlite.close();
     }
@@ -79,10 +103,10 @@ describe("F11 catalog route migration tests", () => {
 
       expect(response.status).toBe(200);
       const json = await response.json();
-      expect(json.id).toBe(item.id);
-      expect(json.name).toBe("Consulting");
-      expect(json.taxable).toBe(true);
-      expect(json.data).toBeUndefined();
+      expect(json.data).toBeDefined();
+      expect(json.data.id).toBe(item.id);
+      expect(json.data.name).toBe("Consulting");
+      expect(json.data.taxable).toBe(true);
     } finally {
       sqlite.close();
     }
@@ -110,14 +134,14 @@ describe("F11 catalog route migration tests", () => {
       expect(response.status).toBe(201);
       const json = await response.json();
 
-      expect(json.id).toBeDefined();
-      expect(json.userId).toBe(user.id);
-      expect(json.name).toBe("Retainer");
-      expect(json.description).toBe("  Monthly package  ");
-      expect(json.unit).toBe("month");
-      expect(json.unitPrice).toBe(25000);
-      expect(json.taxable).toBe(true);
-      expect(json.data).toBeUndefined();
+      expect(json.data).toBeDefined();
+      expect(json.data.id).toBeDefined();
+      expect(json.data.userId).toBe(user.id);
+      expect(json.data.name).toBe("Retainer");
+      expect(json.data.description).toBe("  Monthly package  ");
+      expect(json.data.unit).toBe("month");
+      expect(json.data.unitPrice).toBe(25000);
+      expect(json.data.taxable).toBe(true);
     } finally {
       sqlite.close();
     }
@@ -148,17 +172,17 @@ describe("F11 catalog route migration tests", () => {
       expect(response.status).toBe(200);
       const json = await response.json();
 
-      expect(json.id).toBe(item.id);
-      expect(json.name).toBe("Updated Name");
-      expect(json.unitPrice).toBe(5000);
-      expect(json.taxable).toBe(true);
-      expect(json.data).toBeUndefined();
+      expect(json.data).toBeDefined();
+      expect(json.data.id).toBe(item.id);
+      expect(json.data.name).toBe("Updated Name");
+      expect(json.data.unitPrice).toBe(5000);
+      expect(json.data.taxable).toBe(true);
     } finally {
       sqlite.close();
     }
   });
 
-  it("DELETE /api/catalog/[id] soft-deletes catalog and returns { deleted: true }", async () => {
+  it("DELETE /api/catalog/[id] soft-deletes catalog and returns { success: true }", async () => {
     const { db, sqlite, auth, catalogRoute, catalogByIdRoute } = await loadCatalogRoutes();
     try {
       const user = await seedUser(db);
@@ -172,7 +196,7 @@ describe("F11 catalog route migration tests", () => {
 
       expect(deleteRes.status).toBe(200);
       const deleteJson = await deleteRes.json();
-      expect(deleteJson).toEqual({ deleted: true });
+      expect(deleteJson).toEqual({ success: true });
 
       const deletedRow = db
         .select()
@@ -183,7 +207,7 @@ describe("F11 catalog route migration tests", () => {
 
       const listRes = await catalogRoute.GET(authedRequest("http://localhost/api/catalog", accessToken));
       const listJson = await listRes.json();
-      expect(listJson.catalogs.some((catalog: { id: string }) => catalog.id === item.id)).toBe(false);
+      expect(listJson.data.some((catalog: { id: string }) => catalog.id === item.id)).toBe(false);
     } finally {
       sqlite.close();
     }

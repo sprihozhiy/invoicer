@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
-import { apiError, handleRouteError, parseBody, readJsonBody } from "@/lib/api";
+import { apiError, handleRouteError, parseBody, readJsonBody, successResponse } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { catalogItems } from "@/lib/schema";
@@ -12,14 +12,22 @@ import { uuid } from "@/lib/ids";
 export async function GET(req: NextRequest) {
   try {
     const user = requireAuth(req);
-    const catalogs = db
+    const search = (req.nextUrl.searchParams.get("search") ?? "").trim().toLowerCase();
+    const filters = [eq(catalogItems.userId, user.id), isNull(catalogItems.deletedAt)];
+    if (search) {
+      const pattern = `%${search}%`;
+      filters.push(
+        sql`(lower(${catalogItems.name}) like ${pattern} or lower(coalesce(${catalogItems.description}, '')) like ${pattern})`,
+      );
+    }
+    const items = db
       .select()
       .from(catalogItems)
-      .where(and(eq(catalogItems.userId, user.id), isNull(catalogItems.deletedAt)))
+      .where(and(...filters))
       .orderBy(asc(catalogItems.name))
       .all();
 
-    return NextResponse.json({ catalogs }, { status: 200 });
+    return successResponse(items, 200);
   } catch (error) {
     return handleRouteError(error);
   }
@@ -61,7 +69,7 @@ export async function POST(req: NextRequest) {
       .returning()
       .get();
 
-    return NextResponse.json(created, { status: 201 });
+    return successResponse(created, 201);
   } catch (error) {
     return handleRouteError(error);
   }

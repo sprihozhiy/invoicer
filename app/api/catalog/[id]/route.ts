@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { and, eq, isNull } from "drizzle-orm";
 
-import { apiError, handleRouteError, parseBody, readJsonBody } from "@/lib/api";
+import { actionResponse, apiError, handleRouteError, parseBody, readJsonBody, successResponse } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { catalogItems } from "@/lib/schema";
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const catalogId = ensureUuid(id, "id");
 
     const catalog = getCatalogOrFail(user.id, catalogId);
-    return NextResponse.json(catalog, { status: 200 });
+    return successResponse(catalog, 200);
   } catch (error) {
     return handleRouteError(error);
   }
@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
       apiError(404, "NOT_FOUND", "Catalog item not found.");
     }
 
-    return NextResponse.json(updatedItem, { status: 200 });
+    return successResponse(updatedItem, 200);
   } catch (error) {
     return handleRouteError(error);
   }
@@ -103,7 +103,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
       )
       .run();
 
-    return NextResponse.json({ deleted: true }, { status: 200 });
+    return actionResponse(200);
   } catch (error) {
     return handleRouteError(error);
   }
