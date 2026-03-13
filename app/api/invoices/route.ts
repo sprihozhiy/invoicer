@@ -1,43 +1,48 @@
 import { NextRequest } from "next/server";
+import { and, asc, desc, eq, inArray, isNull, like, or, sql } from "drizzle-orm";
 
 import { apiError, handleRouteError, paginatedResponse, readJsonBody, successResponse } from "@/lib/api";
+import { parseBody } from "@/lib/api";
 import { requireAuth } from "@/lib/auth";
-import { ensureDueDateAfterIssue, getBusinessProfile, parseInvoiceSortBy, parseInvoiceStatusFilter, parseSortDir } from "@/lib/domain";
+import { db } from "@/lib/db";
+import { ensureDueDateAfterIssue, parseInvoiceSortBy, parseInvoiceStatusFilter, parseSortDir } from "@/lib/domain";
 import { computeInvoiceNumber, computeLineItems, computeTotals, toSummary } from "@/lib/invoices";
+import { StoredInvoice, StoredInvoiceStatus } from "@/lib/models";
 import { parsePagination } from "@/lib/pagination";
-import { ensureCurrency, ensureDate, ensureInteger, ensureNumber, ensureOptionalString, ensureString, ensureUuid } from "@/lib/validate";
+import { businessProfiles, clients, invoices } from "@/lib/schema";
 import { nowIso, todayUtc } from "@/lib/time";
-import { store } from "@/lib/store";
 import { uuid } from "@/lib/ids";
+import { InvoiceCreateSchema } from "@/lib/validators";
+import type { LineItem } from "@/lib/models";
 
-function parseLineItems(raw: unknown): Array<{ id?: string; description: string; quantity: number; unitPrice: number; taxable?: boolean }> {
-  if (!Array.isArray(raw) || raw.length === 0) {
-    apiError(400, "VALIDATION_ERROR", "At least one line item is required.", "lineItems");
-  }
-  return raw.map((entry, index) => {
-    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
-      apiError(400, "VALIDATION_ERROR", "line item must be an object.", `lineItems.${index}`);
-    }
-    const item = entry as Record<string, unknown>;
-    const description = ensureString(item.description, `lineItems.${index}.description`, 1, 2000);
-    const quantity = ensureNumber(item.quantity, `lineItems.${index}.quantity`);
-    if (quantity <= 0) {
-      apiError(400, "VALIDATION_ERROR", "quantity must be > 0.", `lineItems.${index}.quantity`);
-    }
-    if (Math.round(quantity * 10000) !== quantity * 10000) {
-      apiError(400, "VALIDATION_ERROR", "quantity supports up to 4 decimal places.", `lineItems.${index}.quantity`);
-    }
-    const unitPrice = ensureInteger(item.unitPrice, `lineItems.${index}.unitPrice`, 0);
-    const taxable = item.taxable === undefined ? false : Boolean(item.taxable);
-
-    return {
-      description,
-      quantity,
-      unitPrice,
-      taxable,
-      ...(item.id ? { id: ensureUuid(item.id, `lineItems.${index}.id`) } : {}),
-    };
-  });
+function toStoredInvoice(row: typeof invoices.$inferSelect): StoredInvoice {
+  return {
+    id: row.id,
+    userId: row.userId,
+    clientId: row.clientId,
+    invoiceNumber: row.invoiceNumber,
+    status: row.status as StoredInvoiceStatus,
+    issueDate: row.issueDate,
+    dueDate: row.dueDate,
+    currency: row.currency,
+    lineItems: row.lineItems as LineItem[],
+    subtotal: row.subtotal,
+    taxRate: row.taxRate ?? null,
+    taxAmount: row.taxAmount,
+    discountType: (row.discountType ?? null) as "percentage" | "fixed" | null,
+    discountValue: row.discountValue,
+    discountAmount: row.discountAmount,
+    total: row.total,
+    amountPaid: row.amountPaid,
+    amountDue: row.amountDue,
+    notes: row.notes ?? null,
+    terms: row.terms ?? null,
+    sentAt: row.sentAt ?? null,
+    paidAt: row.paidAt ?? null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -47,52 +52,76 @@ export async function GET(req: NextRequest) {
     const { page, limit, offset } = parsePagination(params.get("page"), params.get("limit"));
     const status = parseInvoiceStatusFilter(params.get("status"));
     const search = (params.get("search") ?? "").trim().toLowerCase();
-    const clientId = params.get("clientId");
+    const clientIdParam = params.get("clientId");
     const sortBy = parseInvoiceSortBy(params.get("sortBy"));
     const sortDir = parseSortDir(params.get("sortDir"));
 
-    let invoices = store.invoices.filter((item) => item.userId === user.id && item.deletedAt === null);
+    const today = todayUtc();
+
+    // Build conditions
+    const conditions = [eq(invoices.userId, user.id), isNull(invoices.deletedAt)];
 
     if (status) {
       if (status === "overdue") {
-        invoices = invoices.filter((item) => (item.status === "sent" || item.status === "partial") && item.dueDate < todayUtc());
+        conditions.push(
+          inArray(invoices.status, ["sent", "partial"]),
+          sql`${invoices.dueDate} < ${today}`,
+        );
       } else {
-        invoices = invoices.filter((item) => item.status === status);
+        conditions.push(eq(invoices.status, status));
       }
     }
 
-    if (clientId) {
-      const id = ensureUuid(clientId, "clientId");
-      invoices = invoices.filter((item) => item.clientId === id);
+    if (clientIdParam) {
+      conditions.push(eq(invoices.clientId, clientIdParam));
     }
 
     if (search) {
-      invoices = invoices.filter((invoice) => {
-        const clientName = store.clients.find((client) => client.id === invoice.clientId)?.name ?? "";
-        return invoice.invoiceNumber.toLowerCase().includes(search) || clientName.toLowerCase().includes(search);
-      });
+      const pattern = `%${search}%`;
+      conditions.push(
+        or(
+          like(sql`lower(${invoices.invoiceNumber})`, pattern),
+          like(sql`lower(${clients.name})`, pattern),
+        )!,
+      );
     }
 
-    invoices.sort((a, b) => {
-      const av = a[sortBy];
-      const bv = b[sortBy];
-      if (av === bv) {
-        return 0;
-      }
-      const direction = sortDir === "asc" ? 1 : -1;
-      return av > bv ? direction : -direction;
+    // Sort column mapping
+    const sortColumnMap = {
+      createdAt: invoices.createdAt,
+      dueDate: invoices.dueDate,
+      total: invoices.total,
+      invoiceNumber: invoices.invoiceNumber,
+    } as const;
+    const sortColumn = sortColumnMap[sortBy];
+    const orderFn = sortDir === "asc" ? asc : desc;
+
+    // Count query
+    const countResult = db
+      .select({ count: sql<number>`count(*)` })
+      .from(invoices)
+      .innerJoin(clients, eq(invoices.clientId, clients.id))
+      .where(and(...conditions))
+      .get();
+    const total = Number(countResult?.count ?? 0);
+
+    // Data query
+    const rows = db
+      .select({ invoice: invoices, clientName: clients.name })
+      .from(invoices)
+      .innerJoin(clients, eq(invoices.clientId, clients.id))
+      .where(and(...conditions))
+      .orderBy(orderFn(sortColumn))
+      .limit(limit)
+      .offset(offset)
+      .all();
+
+    const data = rows.map(({ invoice: row, clientName }) => {
+      const inv = toStoredInvoice(row);
+      return toSummary(inv, clientName);
     });
 
-    const data = invoices.slice(offset, offset + limit).map((invoice) => {
-      const clientName = store.clients.find((client) => client.id === invoice.clientId)?.name ?? "Unknown Client";
-      return toSummary(invoice, clientName);
-    });
-
-    return paginatedResponse(data, {
-      total: invoices.length,
-      page,
-      limit,
-    });
+    return paginatedResponse(data, { total, page, limit });
   } catch (error) {
     return handleRouteError(error);
   }
@@ -103,94 +132,106 @@ export async function POST(req: NextRequest) {
     const user = requireAuth(req);
     const body = await readJsonBody<Record<string, unknown>>(req);
 
-    const clientId = ensureUuid(body.clientId, "clientId");
-    const client = store.clients.find((item) => item.id === clientId && item.userId === user.id);
+    const parsed = parseBody(InvoiceCreateSchema, body);
+    if (!parsed.ok) return parsed.response;
+    const input = parsed.data;
+
+    ensureDueDateAfterIssue(input.issueDate, input.dueDate);
+
+    // Validate client belongs to user
+    const client = db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.id, input.clientId), eq(clients.userId, user.id)))
+      .get();
     if (!client) {
       apiError(404, "NOT_FOUND", "Client not found.");
     }
 
-    const issueDate = ensureDate(body.issueDate, "issueDate");
-    const dueDate = ensureDate(body.dueDate, "dueDate");
-    ensureDueDateAfterIssue(issueDate, dueDate);
+    const currency = input.currency ?? client.currency;
 
-    const lineItems = computeLineItems(parseLineItems(body.lineItems));
-    const taxRate = body.taxRate === undefined || body.taxRate === null ? null : ensureNumber(body.taxRate, "taxRate", 0);
-    const discountType: "percentage" | "fixed" | null =
-      body.discountType === undefined || body.discountType === null
-        ? null
-        : (() => {
-            const dt = ensureString(body.discountType, "discountType", 1, 20);
-            if (dt !== "percentage" && dt !== "fixed") {
-              apiError(400, "VALIDATION_ERROR", "Invalid discountType.", "discountType");
-            }
-            return dt as "percentage" | "fixed";
-          })();
-    const discountValue = body.discountValue === undefined ? 0 : ensureNumber(body.discountValue, "discountValue", 0);
-
-    const currency = body.currency === undefined ? client.currency : ensureCurrency(body.currency, "currency");
-
-    const profile = getBusinessProfile(user.id);
-
-    let invoiceNumber = body.invoiceNumber ? ensureString(body.invoiceNumber, "invoiceNumber", 1, 50) : undefined;
-    if (!invoiceNumber) {
-      invoiceNumber = computeInvoiceNumber(profile.invoicePrefix, profile.nextInvoiceNumber);
-      profile.nextInvoiceNumber += 1;
-      profile.updatedAt = nowIso();
-    }
-
-    const duplicate = store.invoices.some(
-      (invoice) => invoice.userId === user.id && invoice.deletedAt === null && invoice.invoiceNumber === invoiceNumber,
-    );
-    if (duplicate) {
-      apiError(409, "DUPLICATE_INVOICE_NUMBER", "Invoice number already exists.");
-    }
-
+    const lineItems = computeLineItems(input.lineItems);
     const totals = computeTotals({
       lineItems,
-      taxRate,
-      discountType,
-      discountValue,
+      taxRate: input.taxRate ?? null,
+      discountType: input.discountType ?? null,
+      discountValue: input.discountValue ?? 0,
       amountPaid: 0,
     });
 
     const now = nowIso();
-    const invoice = {
-      id: uuid(),
-      userId: user.id,
-      clientId: client.id,
-      invoiceNumber,
-      status: "draft" as const,
-      issueDate,
-      dueDate,
-      currency,
-      lineItems,
-      subtotal: totals.subtotal,
-      taxRate,
-      taxAmount: totals.taxAmount,
-      discountType,
-      discountValue,
-      discountAmount: totals.discountAmount,
-      total: totals.total,
-      amountPaid: 0,
-      amountDue: totals.total,
-      notes: ensureOptionalString(body.notes, "notes", 5000) ?? null,
-      terms: ensureOptionalString(body.terms, "terms", 5000) ?? null,
-      sentAt: null,
-      paidAt: null,
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
-    };
 
-    store.invoices.push(invoice);
+    // Atomic transaction to get/increment nextInvoiceNumber
+    const invoice = db.transaction((tx) => {
+      const profile = tx
+        .select()
+        .from(businessProfiles)
+        .where(eq(businessProfiles.userId, user.id))
+        .get();
+      if (!profile) {
+        apiError(500, "INTERNAL_SERVER_ERROR", "Business profile not found.");
+      }
 
-    return successResponse(
-      {
-        ...invoice,
-        status: "draft",
-      },
-      201,
-    );
+      let invoiceNumber = input.invoiceNumber;
+      if (!invoiceNumber) {
+        invoiceNumber = computeInvoiceNumber(profile.invoicePrefix, profile.nextInvoiceNumber);
+        tx
+          .update(businessProfiles)
+          .set({ nextInvoiceNumber: profile.nextInvoiceNumber + 1, updatedAt: now })
+          .where(eq(businessProfiles.id, profile.id))
+          .run();
+      }
+
+      // Check for duplicate invoice number
+      const duplicate = tx
+        .select({ id: invoices.id })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.userId, user.id),
+            isNull(invoices.deletedAt),
+            eq(invoices.invoiceNumber, invoiceNumber),
+          ),
+        )
+        .get();
+      if (duplicate) {
+        apiError(409, "DUPLICATE_INVOICE_NUMBER", "Invoice number already exists.");
+      }
+
+      const id = uuid();
+      const newInvoice = {
+        id,
+        userId: user.id,
+        clientId: client.id,
+        invoiceNumber,
+        status: "draft" as const,
+        issueDate: input.issueDate,
+        dueDate: input.dueDate,
+        currency,
+        lineItems,
+        subtotal: totals.subtotal,
+        taxRate: input.taxRate ?? null,
+        taxAmount: totals.taxAmount,
+        discountType: input.discountType ?? null,
+        discountValue: input.discountValue ?? 0,
+        discountAmount: totals.discountAmount,
+        total: totals.total,
+        amountPaid: 0,
+        amountDue: totals.total,
+        notes: input.notes ?? null,
+        terms: input.terms ?? null,
+        sentAt: null,
+        paidAt: null,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      };
+
+      tx.insert(invoices).values(newInvoice).run();
+      return newInvoice;
+    });
+
+    return successResponse(invoice, 201);
   } catch (error) {
     return handleRouteError(error);
   }

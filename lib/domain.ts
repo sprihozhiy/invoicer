@@ -2,15 +2,47 @@ import { apiError } from "@/lib/api";
 import { ensureCountryCode, ensureCurrency, ensureDate, ensureEmail, ensureInteger, ensureInvoicePrefix, ensureNumber, ensureOptionalString, ensureString, ensureUuid } from "@/lib/validate";
 import { Address, BusinessProfile, Client, StoredInvoice, StoredUser } from "@/lib/models";
 import { nowIso, todayUtc } from "@/lib/time";
-import { store } from "@/lib/store";
 import { uuid } from "@/lib/ids";
+import { db } from "@/lib/db";
+import { and, eq, isNull } from "drizzle-orm";
+import { businessProfiles, clients, invoices } from "@/lib/schema";
 
 export function getBusinessProfile(userId: string): BusinessProfile {
-  const profile = store.businessProfiles.find((item) => item.userId === userId);
-  if (!profile) {
+  const row = db.select().from(businessProfiles).where(eq(businessProfiles.userId, userId)).get();
+  if (!row) {
     apiError(500, "INTERNAL_SERVER_ERROR", "Business profile not found.");
   }
-  return profile;
+  const address: Address | null =
+    row.addressLine1
+      ? {
+          line1: row.addressLine1,
+          line2: row.addressLine2 ?? null,
+          city: row.addressCity ?? "",
+          state: row.addressState ?? null,
+          postalCode: row.addressPostalCode ?? null,
+          country: row.addressCountry ?? "",
+        }
+      : null;
+  return {
+    id: row.id,
+    userId: row.userId,
+    businessName: row.businessName,
+    logoUrl: row.logoUrl ?? null,
+    address,
+    phone: row.phone ?? null,
+    email: row.email ?? null,
+    website: row.website ?? null,
+    taxId: row.taxId ?? null,
+    defaultCurrency: row.defaultCurrency,
+    defaultPaymentTermsDays: row.defaultPaymentTermsDays,
+    defaultTaxRate: row.defaultTaxRate ?? null,
+    defaultNotes: row.defaultNotes ?? null,
+    defaultTerms: row.defaultTerms ?? null,
+    invoicePrefix: row.invoicePrefix,
+    nextInvoiceNumber: row.nextInvoiceNumber,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
 }
 
 export function createDefaultBusinessProfile(userId: string): BusinessProfile {
@@ -208,19 +240,72 @@ export function parsePaymentMethod(value: unknown): "cash" | "bank_transfer" | "
 
 export function requireClientOwned(userId: string, clientId: unknown): Client {
   const id = ensureUuid(clientId, "clientId");
-  const client = store.clients.find((item) => item.id === id && item.userId === userId);
-  if (!client) {
+  const row = db.select().from(clients).where(and(eq(clients.id, id), eq(clients.userId, userId))).get();
+  if (!row) {
     apiError(404, "NOT_FOUND", "Client not found.");
   }
-  return client;
+  const address: Address | null =
+    row.addressLine1
+      ? {
+          line1: row.addressLine1,
+          line2: row.addressLine2 ?? null,
+          city: row.addressCity ?? "",
+          state: row.addressState ?? null,
+          postalCode: row.addressPostalCode ?? null,
+          country: row.addressCountry ?? "",
+        }
+      : null;
+  return {
+    id: row.id,
+    userId: row.userId,
+    name: row.name,
+    email: row.email ?? null,
+    phone: row.phone ?? null,
+    company: row.company ?? null,
+    address,
+    currency: row.currency,
+    notes: row.notes ?? null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
 }
 
 export function requireInvoiceOwned(userId: string, invoiceId: string): StoredInvoice {
-  const invoice = store.invoices.find((item) => item.id === invoiceId && item.userId === userId && item.deletedAt === null);
-  if (!invoice) {
+  const row = db
+    .select()
+    .from(invoices)
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId), isNull(invoices.deletedAt)))
+    .get();
+  if (!row) {
     apiError(404, "NOT_FOUND", "Invoice not found.");
   }
-  return invoice;
+  return {
+    id: row.id,
+    userId: row.userId,
+    clientId: row.clientId,
+    invoiceNumber: row.invoiceNumber,
+    status: row.status as StoredInvoice["status"],
+    issueDate: row.issueDate,
+    dueDate: row.dueDate,
+    currency: row.currency,
+    lineItems: row.lineItems as StoredInvoice["lineItems"],
+    subtotal: row.subtotal,
+    taxRate: row.taxRate ?? null,
+    taxAmount: row.taxAmount,
+    discountType: (row.discountType ?? null) as StoredInvoice["discountType"],
+    discountValue: row.discountValue,
+    discountAmount: row.discountAmount,
+    total: row.total,
+    amountPaid: row.amountPaid,
+    amountDue: row.amountDue,
+    notes: row.notes ?? null,
+    terms: row.terms ?? null,
+    sentAt: row.sentAt ?? null,
+    paidAt: row.paidAt ?? null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
+  };
 }
 
 export function ensureDueDateAfterIssue(issueDate: string, dueDate: string): void {
