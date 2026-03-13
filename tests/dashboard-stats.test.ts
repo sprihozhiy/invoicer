@@ -131,6 +131,7 @@ describe("F13 dashboard stats migration tests", () => {
       expect(json.data.totalOutstanding).toBe(4000);
       expect(json.data.totalOverdue).toBe(1500);
       expect(json.data.paidThisMonth).toBe(4500);
+      expect(json.data.currency).toBe("USD");
 
       expect(json.data.recentInvoices).toHaveLength(5);
       expect(json.data.recentInvoices.map((i: { invoiceNumber: string }) => i.invoiceNumber)).toEqual([

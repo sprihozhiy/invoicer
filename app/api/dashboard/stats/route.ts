@@ -134,6 +134,7 @@ export async function GET(req: NextRequest) {
         totalOutstanding: Number(outstandingRow?.total ?? 0),
         totalOverdue: Number(overdueRow?.total ?? 0),
         paidThisMonth: Number(paidThisMonthRow?.total ?? 0),
+        currency: profile.defaultCurrency,
         recentInvoices,
         overdueInvoices,
       },
