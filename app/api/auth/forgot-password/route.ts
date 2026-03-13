@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
+import { eq } from "drizzle-orm";
 
 import { actionResponse, handleRouteError, readJsonBody } from "@/lib/api";
+import { db } from "@/lib/db";
 import { ensureEmail } from "@/lib/validate";
 import { randomToken, sha256, uuid } from "@/lib/ids";
-import { store } from "@/lib/store";
+import { resetTokens, users } from "@/lib/schema";
 import { nowIso } from "@/lib/time";
 
 export async function POST(req: NextRequest) {
@@ -11,13 +13,13 @@ export async function POST(req: NextRequest) {
     const body = await readJsonBody<Record<string, unknown>>(req);
     const email = ensureEmail(body.email, "email");
 
-    const user = store.users.find((item) => item.email === email);
+    const user = db.select().from(users).where(eq(users.email, email)).get();
     if (user) {
       const rawToken = randomToken(32);
       const now = nowIso();
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-      store.passwordResetTokens.push({
+      db.insert(resetTokens).values({
         id: uuid(),
         userId: user.id,
         rawToken,
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
         expiresAt,
         usedAt: null,
         createdAt: now,
-      });
+      }).run();
     }
 
     return actionResponse(200);
