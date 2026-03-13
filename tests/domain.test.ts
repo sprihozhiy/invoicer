@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Address } from "@/lib/models";
-import { ApiError } from "@/lib/api";
 import {
   createTestDb,
   seedClient,
@@ -16,10 +15,14 @@ async function loadDomain() {
   globalThis.__invoicer_db__ = testDb.db;
 
   const domain = await import("@/lib/domain");
+  // Import ApiError from the same module cycle so instanceof checks work correctly
+  // after vi.resetModules() produces a fresh class instance.
+  const { ApiError } = await import("@/lib/api");
 
   return {
     ...testDb,
     domain,
+    ApiError,
   };
 }
 
@@ -107,7 +110,7 @@ describe("domain helpers", () => {
   });
 
   it("getClientOrFail returns owned client with nested address and throws 404 for wrong user", async () => {
-    const { db, sqlite, domain } = await loadDomain();
+    const { db, sqlite, domain, ApiError } = await loadDomain();
     try {
       const user = await seedUser(db, { email: "owner@example.com" });
       const otherUser = await seedUser(db, { email: "other@example.com" });
@@ -147,7 +150,7 @@ describe("domain helpers", () => {
   });
 
   it("getInvoiceOrFail ignores deleted invoices and enforces user ownership", async () => {
-    const { db, sqlite, domain } = await loadDomain();
+    const { db, sqlite, domain, ApiError } = await loadDomain();
     try {
       const user = await seedUser(db, { email: "invoice-owner@example.com" });
       const otherUser = await seedUser(db, { email: "invoice-other@example.com" });
@@ -170,7 +173,7 @@ describe("domain helpers", () => {
   });
 
   it("getProfileOrFail returns profile with nested address and 404 on missing", async () => {
-    const { db, sqlite, domain } = await loadDomain();
+    const { db, sqlite, domain, ApiError } = await loadDomain();
     try {
       const user = await seedUser(db, { email: "profile-owner@example.com" });
       const missingUser = await seedUser(db, { email: "profile-missing@example.com" });
