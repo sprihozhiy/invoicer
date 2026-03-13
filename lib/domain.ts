@@ -7,28 +7,62 @@ import { db } from "@/lib/db";
 import { and, eq, isNull } from "drizzle-orm";
 import { businessProfiles, clients, invoices } from "@/lib/schema";
 
-export function getBusinessProfile(userId: string): BusinessProfile {
+type FlatAddressColumns = {
+  addressLine1: string | null;
+  addressLine2: string | null;
+  addressCity: string | null;
+  addressState: string | null;
+  addressPostalCode: string | null;
+  addressCountry: string | null;
+};
+
+export function flatToAddress(row: FlatAddressColumns): Address | null {
+  if (row.addressLine1 === null) {
+    return null;
+  }
+  return {
+    line1: row.addressLine1,
+    line2: row.addressLine2 ?? null,
+    city: row.addressCity ?? "",
+    state: row.addressState ?? null,
+    postalCode: row.addressPostalCode ?? null,
+    country: row.addressCountry ?? "",
+  };
+}
+
+export function addressToFlat(address: Address | null | undefined): FlatAddressColumns {
+  if (!address) {
+    return {
+      addressLine1: null,
+      addressLine2: null,
+      addressCity: null,
+      addressState: null,
+      addressPostalCode: null,
+      addressCountry: null,
+    };
+  }
+  return {
+    addressLine1: address.line1,
+    addressLine2: address.line2,
+    addressCity: address.city,
+    addressState: address.state,
+    addressPostalCode: address.postalCode,
+    addressCountry: address.country,
+  };
+}
+
+export function getProfileOrFail(userId: string): BusinessProfile {
   const row = db.select().from(businessProfiles).where(eq(businessProfiles.userId, userId)).get();
   if (!row) {
-    apiError(500, "INTERNAL_SERVER_ERROR", "Business profile not found.");
+    apiError(404, "NOT_FOUND", "Business profile not found.");
   }
-  const address: Address | null =
-    row.addressLine1
-      ? {
-          line1: row.addressLine1,
-          line2: row.addressLine2 ?? null,
-          city: row.addressCity ?? "",
-          state: row.addressState ?? null,
-          postalCode: row.addressPostalCode ?? null,
-          country: row.addressCountry ?? "",
-        }
-      : null;
+
   return {
     id: row.id,
     userId: row.userId,
     businessName: row.businessName,
     logoUrl: row.logoUrl ?? null,
-    address,
+    address: flatToAddress(row),
     phone: row.phone ?? null,
     email: row.email ?? null,
     website: row.website ?? null,
@@ -43,6 +77,10 @@ export function getBusinessProfile(userId: string): BusinessProfile {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+export function getBusinessProfile(userId: string): BusinessProfile {
+  return getProfileOrFail(userId);
 }
 
 export function createDefaultBusinessProfile(userId: string): BusinessProfile {
@@ -152,7 +190,7 @@ export function parseClientCreate(body: Record<string, unknown>, user: StoredUse
     apiError(400, "VALIDATION_ERROR", "name is required.", "name");
   }
 
-  const profile = getBusinessProfile(user.id);
+  const profile = getProfileOrFail(user.id);
 
   return {
     userId: user.id,
@@ -240,21 +278,19 @@ export function parsePaymentMethod(value: unknown): "cash" | "bank_transfer" | "
 
 export function requireClientOwned(userId: string, clientId: unknown): Client {
   const id = ensureUuid(clientId, "clientId");
-  const row = db.select().from(clients).where(and(eq(clients.id, id), eq(clients.userId, userId))).get();
+  return getClientOrFail(userId, id);
+}
+
+export function getClientOrFail(userId: string, clientId: string): Client {
+  const row = db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, clientId), eq(clients.userId, userId)))
+    .get();
   if (!row) {
     apiError(404, "NOT_FOUND", "Client not found.");
   }
-  const address: Address | null =
-    row.addressLine1
-      ? {
-          line1: row.addressLine1,
-          line2: row.addressLine2 ?? null,
-          city: row.addressCity ?? "",
-          state: row.addressState ?? null,
-          postalCode: row.addressPostalCode ?? null,
-          country: row.addressCountry ?? "",
-        }
-      : null;
+
   return {
     id: row.id,
     userId: row.userId,
@@ -262,7 +298,7 @@ export function requireClientOwned(userId: string, clientId: unknown): Client {
     email: row.email ?? null,
     phone: row.phone ?? null,
     company: row.company ?? null,
-    address,
+    address: flatToAddress(row),
     currency: row.currency,
     notes: row.notes ?? null,
     createdAt: row.createdAt,
@@ -271,10 +307,14 @@ export function requireClientOwned(userId: string, clientId: unknown): Client {
 }
 
 export function requireInvoiceOwned(userId: string, invoiceId: string): StoredInvoice {
+  return getInvoiceOrFail(userId, invoiceId);
+}
+
+export function getInvoiceOrFail(userId: string, id: string): StoredInvoice {
   const row = db
     .select()
     .from(invoices)
-    .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId), isNull(invoices.deletedAt)))
+    .where(and(eq(invoices.id, id), eq(invoices.userId, userId), isNull(invoices.deletedAt)))
     .get();
   if (!row) {
     apiError(404, "NOT_FOUND", "Invoice not found.");
