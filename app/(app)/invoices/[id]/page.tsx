@@ -313,8 +313,8 @@ function SendInvoiceModal({ open, onClose, invoice, onSuccess }: SendInvoiceModa
     setError(null);
     setEmailError(null);
 
-    if (!recipientEmail.trim()) {
-      setEmailError("Recipient email is required.");
+    if (!recipientEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail.trim())) {
+      setEmailError("Enter a valid email address.");
       return;
     }
 
@@ -428,9 +428,9 @@ function RecordPaymentModal({ open, onClose, invoice, onSuccess }: RecordPayment
     const cents = Math.round(parseFloat(amountStr) * 100);
 
     if (!amountStr || isNaN(parseFloat(amountStr)) || cents <= 0) {
-      errs.amount = "Amount must be greater than zero.";
+      errs.amount = "Enter a valid payment amount.";
     } else if (cents > invoice.amountDue) {
-      errs.amount = `Amount cannot exceed the amount due (${formatMoney(invoice.amountDue, invoice.currency)}).`;
+      errs.amount = "Payment exceeds the amount due.";
     }
 
     if (!paidAt) {
