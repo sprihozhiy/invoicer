@@ -193,15 +193,3 @@ export interface StoredResetToken {
   usedAt: ISODateTime | null;
   createdAt: ISODateTime;
 }
-
-export interface InMemoryStore {
-  users: StoredUser[];
-  businessProfiles: BusinessProfile[];
-  clients: Client[];
-  invoices: StoredInvoice[];
-  payments: Payment[];
-  catalogItems: CatalogItem[];
-  refreshTokens: RefreshTokenRecord[];
-  accessTokens: AccessTokenRecord[];
-  passwordResetTokens: StoredResetToken[];
-}
