@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, AlertCircle } from "lucide-react";
+import { Plus, AlertCircle, Wallet, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { requestJson, toErrorMessage } from "../../_lib/api";
 import { formatMoney, formatDate, daysOverdue } from "../../_lib/format";
 import { StatusBadge } from "../../_components/StatusBadge";
@@ -17,6 +17,8 @@ function StatCard({
   sublabel,
   value,
   valueColor,
+  icon,
+  gradientColor,
   loading,
   error,
 }: {
@@ -24,41 +26,72 @@ function StatCard({
   sublabel?: string;
   value: string;
   valueColor?: string;
+  icon?: React.ReactNode;
+  gradientColor?: string;
   loading: boolean;
   error: string | null;
 }) {
   return (
     <div
-      className="rounded-2xl border p-6"
+      className="relative overflow-hidden rounded-xl border p-6 flex flex-col gap-3"
       style={{
         backgroundColor: "var(--bg-surface)",
         borderColor: "var(--border-primary)",
       }}
     >
-      <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-        {label}
-      </p>
-      {sublabel && (
-        <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
-          {sublabel}
+      {/* Label row with icon */}
+      <div className="flex items-center justify-between" style={{ position: "relative", zIndex: 1 }}>
+        <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+          {label}
         </p>
-      )}
-      {loading ? (
+        {icon && (
+          <span
+            className="flex items-center justify-center rounded-full p-1.5"
+            style={{
+              backgroundColor: gradientColor ? `${gradientColor}1a` : "var(--bg-elevated)",
+              color: gradientColor ?? "var(--text-secondary)",
+            }}
+          >
+            {icon}
+          </span>
+        )}
+      </div>
+
+      {/* Value */}
+      <div style={{ position: "relative", zIndex: 1 }}>
+        {loading ? (
+          <div
+            className="h-9 w-28 animate-pulse rounded"
+            style={{ backgroundColor: "var(--bg-elevated)" }}
+          />
+        ) : error ? (
+          <p className="text-sm" style={{ color: "var(--danger-fg)" }}>
+            {error}
+          </p>
+        ) : (
+          <p
+            className="text-3xl font-bold tabular-nums leading-tight"
+            style={{ color: valueColor ?? "var(--text-primary)" }}
+          >
+            {value}
+          </p>
+        )}
+        {sublabel && !loading && !error && (
+          <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+            {sublabel}
+          </p>
+        )}
+      </div>
+
+      {/* Decorative bottom gradient */}
+      {gradientColor && (
         <div
-          className="mt-3 h-8 w-24 animate-pulse rounded"
-          style={{ backgroundColor: "var(--bg-elevated)" }}
+          className="absolute bottom-0 left-0 w-full h-16 pointer-events-none"
+          style={{
+            background: `linear-gradient(to top, ${gradientColor}1a, transparent)`,
+            zIndex: 0,
+          }}
         />
-      ) : error ? (
-        <p className="mt-2 text-sm" style={{ color: "var(--danger-fg)" }}>
-          {error}
-        </p>
-      ) : (
-        <p
-          className="mt-2 text-3xl font-semibold tabular-nums"
-          style={{ color: valueColor ?? "var(--text-primary)" }}
-        >
-          {value}
-        </p>
       )}
     </div>
   );
@@ -84,13 +117,13 @@ export default function DashboardPage() {
     <div>
       {/* Page header */}
       <div
-        className="flex items-center justify-between px-8 py-6"
+        className="flex items-center justify-between px-8 py-5"
         style={{
           backgroundColor: "var(--bg-surface)",
           borderBottom: "1px solid var(--border-primary)",
         }}
       >
-        <h1 className="text-3xl font-semibold" style={{ color: "var(--text-primary)" }}>
+        <h1 className="text-xl font-bold leading-tight" style={{ color: "var(--text-primary)" }}>
           Dashboard
         </h1>
         <Link href="/invoices/new">
@@ -123,6 +156,8 @@ export default function DashboardPage() {
             label="Total Outstanding"
             sublabel="Unpaid across all open invoices"
             value={data ? formatMoney(data.totalOutstanding, currency) : "$0.00"}
+            icon={<Wallet size={16} strokeWidth={1.5} />}
+            gradientColor="#178dee"
             loading={loading}
             error={null}
           />
@@ -131,6 +166,8 @@ export default function DashboardPage() {
             sublabel="Past due date and unpaid"
             value={data ? formatMoney(data.totalOverdue, currency) : "$0.00"}
             valueColor={data && data.totalOverdue > 0 ? "var(--danger-fg)" : undefined}
+            icon={<AlertTriangle size={16} strokeWidth={1.5} />}
+            gradientColor="#ef4444"
             loading={loading}
             error={null}
           />
@@ -139,6 +176,8 @@ export default function DashboardPage() {
             sublabel={`Received in ${monthName} ${year}`}
             value={data ? formatMoney(data.paidThisMonth, currency) : "$0.00"}
             valueColor="var(--success-fg)"
+            icon={<CheckCircle2 size={16} strokeWidth={1.5} />}
+            gradientColor="#22c55e"
             loading={loading}
             error={null}
           />
