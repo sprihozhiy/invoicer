@@ -419,7 +419,7 @@ export default function LandingPage() {
               ].map((f) => (
                 <article
                   key={f.title}
-                  className="rounded-2xl border p-8"
+                  className="feature-card rounded-2xl border p-8"
                   style={{
                     backgroundColor: "var(--bg-surface)",
                     borderColor: "var(--border-primary)",
@@ -728,33 +728,32 @@ export default function LandingPage() {
         {/* ── Final CTA ── */}
         <section className="reveal px-6 pb-24">
           <div
-            className="mx-auto w-full max-w-[1280px] rounded-2xl border p-10 text-center md:p-16"
+            className="mx-auto w-full max-w-[1280px] rounded-2xl p-10 text-center md:p-16"
             style={{
-              backgroundColor: "var(--bg-surface)",
-              borderColor: "var(--border-primary)",
+              background: "linear-gradient(45deg, var(--accent-primary), var(--accent-active))",
             }}
           >
             <h2
               className="text-4xl font-semibold tracking-[-0.01em] md:text-5xl"
-              style={{ color: "var(--text-primary)" }}
+              style={{ color: "#ffffff" }}
             >
               Your clients judge your invoice before they pay it.
             </h2>
             <p
               className="mx-auto mt-4 max-w-xl text-lg"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "rgba(255,255,255,0.82)" }}
             >
               Make it count. Set up Invoicer in two minutes and send your first professional
               invoice today.
             </p>
             <Link
               href="/register"
-              className="mt-8 inline-block rounded-lg px-8 py-3 text-base font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[var(--accent-hover)]"
-              style={{ backgroundColor: "var(--accent-primary)" }}
+              className="mt-8 inline-block rounded-lg px-8 py-3 text-base font-semibold transition-all hover:-translate-y-0.5 hover:opacity-90"
+              style={{ backgroundColor: "#ffffff", color: "var(--accent-primary)" }}
             >
               Get Started Free
             </Link>
-            <p className="mt-3 text-sm" style={{ color: "var(--text-secondary)" }}>
+            <p className="mt-3 text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
               No credit card required. Free forever on the core plan.
             </p>
           </div>
