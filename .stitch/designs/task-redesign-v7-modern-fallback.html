@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Invoicer - App Prototype</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-    <script id="tailwind-config">
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard Overview</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -16,24 +17,6 @@
                         "primary": "#0f1729",
                         "background-light": "#f6f7f8",
                         "background-dark": "#14171e",
-                        "emerald": {
-                            "DEFAULT": "#059669",
-                            "50": "#ecfdf5",
-                            "100": "#d1fae5",
-                            "700": "#047857",
-                            "800": "#065f46",
-                            "900": "#064e3b"
-                        },
-                        "amber": {
-                            "DEFAULT": "#d97706",
-                            "100": "#fef3c7",
-                            "800": "#92400e"
-                        },
-                        "rose": {
-                            "DEFAULT": "#e11d48",
-                            "100": "#ffe4e6",
-                            "800": "#9f1239"
-                        }
                     },
                     fontFamily: {
                         "display": ["Inter"]
@@ -43,11 +26,6 @@
             },
         }
     </script>
-    <style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-    </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased">
 <div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
@@ -93,7 +71,7 @@
 <span class="text-sm font-medium">Settings</span>
 </a>
 <div class="flex items-center gap-3 px-3 py-3 mt-2 border-t border-slate-200 dark:border-slate-800">
-<div class="size-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">JD</div>
+<img alt="User avatar" class="size-8 rounded-full" data-alt="User profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDDSvuIf4KluhdxPOXiGHei9PEM8hb92YqXVvOzncCOKuRyWYnLyRmJ7n35l1Aml2OVxP2VfpKYMdDK8-_aww5H1elEtNys6MfcShkHI3aoQjd6ThYuBJF2hEGVbOKSgleB4_zeqM4IPJb7hlfsrTmf3v2tg9nbk9C3xFKlEJzPIn7lxe0BIpafD8mKHfZUZr7r9dWe42ZKCBz3rkHnIDxFLBnwE51A-SzvJxAANf6BfCEKbZO5ggI0T_vLjkzTDVTxBaPPKZI6aaw"/>
 <div class="flex flex-col">
 <span class="text-sm font-medium text-slate-900 dark:text-slate-100">Jane Doe</span>
 <span class="text-xs text-slate-500 dark:text-slate-400">jane@acme.com</span>
@@ -131,11 +109,12 @@
                                 </div>
 </div>
 <div class="mt-2 h-16 w-full flex items-end gap-1">
-<div class="w-1/6 bg-primary/20 dark:bg-primary/30 rounded-t h-1/4"></div>
-<div class="w-1/6 bg-primary/20 dark:bg-primary/30 rounded-t h-2/4"></div>
-<div class="w-1/6 bg-primary/30 dark:bg-primary/40 rounded-t h-1/3"></div>
-<div class="w-1/6 bg-primary/40 dark:bg-primary/50 rounded-t h-3/4"></div>
-<div class="w-1/6 bg-primary/60 dark:bg-primary/70 rounded-t h-2/3"></div>
+<!-- Sparkline representation using divs for simplicity, visually similar to example -->
+<div class="w-1/6 bg-primary/20 dark:bg-primary/30 rounded-t h-1/4 hover:bg-primary/40 transition-colors"></div>
+<div class="w-1/6 bg-primary/20 dark:bg-primary/30 rounded-t h-2/4 hover:bg-primary/40 transition-colors"></div>
+<div class="w-1/6 bg-primary/30 dark:bg-primary/40 rounded-t h-1/3 hover:bg-primary/50 transition-colors"></div>
+<div class="w-1/6 bg-primary/40 dark:bg-primary/50 rounded-t h-3/4 hover:bg-primary/60 transition-colors"></div>
+<div class="w-1/6 bg-primary/60 dark:bg-primary/70 rounded-t h-2/3 hover:bg-primary/80 transition-colors"></div>
 <div class="w-1/6 bg-primary dark:bg-blue-500 rounded-t h-full"></div>
 </div>
 <div class="flex justify-between mt-2 text-[10px] text-slate-400 font-medium uppercase tracking-wider">
@@ -156,11 +135,11 @@
                                 </div>
 </div>
 <div class="mt-2 h-16 w-full flex items-end gap-1">
-<div class="w-1/6 bg-rose-200 dark:bg-rose-900/40 rounded-t h-1/3"></div>
-<div class="w-1/6 bg-rose-200 dark:bg-rose-900/40 rounded-t h-1/4"></div>
-<div class="w-1/6 bg-rose-300 dark:bg-rose-800/50 rounded-t h-2/5"></div>
-<div class="w-1/6 bg-rose-400 dark:bg-rose-700/60 rounded-t h-1/2"></div>
-<div class="w-1/6 bg-rose-500 dark:bg-rose-600/70 rounded-t h-3/4"></div>
+<div class="w-1/6 bg-rose-200 dark:bg-rose-900/40 rounded-t h-1/3 hover:bg-rose-300 transition-colors"></div>
+<div class="w-1/6 bg-rose-200 dark:bg-rose-900/40 rounded-t h-1/4 hover:bg-rose-300 transition-colors"></div>
+<div class="w-1/6 bg-rose-300 dark:bg-rose-800/50 rounded-t h-2/5 hover:bg-rose-400 transition-colors"></div>
+<div class="w-1/6 bg-rose-400 dark:bg-rose-700/60 rounded-t h-1/2 hover:bg-rose-500 transition-colors"></div>
+<div class="w-1/6 bg-rose-500 dark:bg-rose-600/70 rounded-t h-3/4 hover:bg-rose-600 transition-colors"></div>
 <div class="w-1/6 bg-rose-600 dark:bg-rose-500 rounded-t h-full"></div>
 </div>
 <div class="flex justify-between mt-2 text-[10px] text-slate-400 font-medium uppercase tracking-wider">
@@ -181,11 +160,11 @@
                                 </div>
 </div>
 <div class="mt-2 h-16 w-full flex items-end gap-1">
-<div class="w-1/6 bg-emerald-200 dark:bg-emerald-900/40 rounded-t h-1/5"></div>
-<div class="w-1/6 bg-emerald-200 dark:bg-emerald-900/40 rounded-t h-1/3"></div>
-<div class="w-1/6 bg-emerald-300 dark:bg-emerald-800/50 rounded-t h-1/2"></div>
-<div class="w-1/6 bg-emerald-400 dark:bg-emerald-700/60 rounded-t h-2/3"></div>
-<div class="w-1/6 bg-emerald-500 dark:bg-emerald-600/70 rounded-t h-4/5"></div>
+<div class="w-1/6 bg-emerald-200 dark:bg-emerald-900/40 rounded-t h-1/5 hover:bg-emerald-300 transition-colors"></div>
+<div class="w-1/6 bg-emerald-200 dark:bg-emerald-900/40 rounded-t h-1/3 hover:bg-emerald-300 transition-colors"></div>
+<div class="w-1/6 bg-emerald-300 dark:bg-emerald-800/50 rounded-t h-1/2 hover:bg-emerald-400 transition-colors"></div>
+<div class="w-1/6 bg-emerald-400 dark:bg-emerald-700/60 rounded-t h-2/3 hover:bg-emerald-500 transition-colors"></div>
+<div class="w-1/6 bg-emerald-500 dark:bg-emerald-600/70 rounded-t h-4/5 hover:bg-emerald-600 transition-colors"></div>
 <div class="w-1/6 bg-emerald-600 dark:bg-emerald-500 rounded-t h-full"></div>
 </div>
 <div class="flex justify-between mt-2 text-[10px] text-slate-400 font-medium uppercase tracking-wider">
@@ -222,7 +201,9 @@
 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">Oct 12, 2023</td>
 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">$15,000.00</td>
 <td class="px-6 py-4 whitespace-nowrap">
-<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400">Paid</span>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400">
+                                                Paid
+                                            </span>
 </td>
 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
 <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
@@ -238,7 +219,9 @@
 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">Oct 10, 2023</td>
 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">$8,500.00</td>
 <td class="px-6 py-4 whitespace-nowrap">
-<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400">Outstanding</span>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400">
+                                                Outstanding
+                                            </span>
 </td>
 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
 <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
@@ -254,7 +237,45 @@
 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">Oct 08, 2023</td>
 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">$12,450.00</td>
 <td class="px-6 py-4 whitespace-nowrap">
-<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-400">Overdue</span>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-400">
+                                                Overdue
+                                            </span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400 flex items-center justify-center font-bold text-sm">LC</div>
+<span class="text-sm font-medium text-slate-900 dark:text-slate-100">LexCorp</span>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">Oct 05, 2023</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">$4,200.00</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400">
+                                                Paid
+                                            </span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-400 flex items-center justify-center font-bold text-sm">CS</div>
+<span class="text-sm font-medium text-slate-900 dark:text-slate-100">Cyberdyne Systems</span>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">Oct 01, 2023</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">$22,000.00</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400">
+                                                Paid
+                                            </span>
 </td>
 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
 <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
@@ -268,5 +289,4 @@
 </div>
 </div>
 </div>
-</body>
-</html>
+</body></html>

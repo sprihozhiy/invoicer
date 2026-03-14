@@ -1,0 +1,7 @@
+YOLO mode is enabled. All tool calls will be automatically approved.
+Loaded cached credentials.
+YOLO mode is enabled. All tool calls will be automatically approved.
+Loading extension: Stitch
+Model set to gemini-3-flash-preview
+I will list the owned Stitch projects to retrieve the project count and sample IDs.
+{"ok":true,"projectCount":8,"sampleProjectIds":["13018833226483480227","5014494233135862516","2863974321700066738"],"error":""}

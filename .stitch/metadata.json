@@ -1,0 +1,36 @@
+{
+  "project": {
+    "name": "projects/17168312793327566039",
+    "title": "invoicer-task-redesign-v7-modern-fallback",
+    "visibility": "PRIVATE",
+    "createTime": "2026-03-14T05:56:57.713565Z",
+    "updateTime": "2026-03-14T05:58:21.373489Z",
+    "projectType": "PROJECT_DESIGN",
+    "thumbnailScreenshot": {
+      "name": "projects/17168312793327566039/files/8fdf778b0a514241a358157a87a166be",
+      "downloadUrl": "https://lh3.googleusercontent.com/aida/AOfcidVAGV3fAGUhOTlv-pthNJuO79BVhQXiGITnfXZYRfbQp0wd6LXqTNzdeLp3J96FEMdgoujnoNtZhnFN5-abBjq7GcyiMFriH2E23vgEVrpDekhs69LqcV3ogtpNjcgoEKkE4CxMM7SA3PUY5WFCoJ7isO2buPQ055c93SBNng1pvcAxKjUN4sntDYpd0j0fBL-ybMZT_0kiYLqLy90pcTUvIAizocUu334zDDxc0JVGOElV2AomEp-bwv07"
+    },
+    "origin": "STITCH",
+    "deviceType": "DESKTOP",
+    "designTheme": {
+      "colorMode": "LIGHT",
+      "font": "INTER",
+      "roundness": "ROUND_TWELVE",
+      "customColor": "#0f1729",
+      "saturation": 2
+    },
+    "metadata": {
+      "userRole": "OWNER"
+    }
+  },
+  "screens": {
+    "task-redesign-v7-modern-fallback": {
+      "id": "8cc7e1db553c473b9d8db32c53fe81d5",
+      "sourceScreen": "projects/17168312793327566039/screens/8cc7e1db553c473b9d8db32c53fe81d5",
+      "x": 0,
+      "y": 0,
+      "width": 2560,
+      "height": 2048
+    }
+  }
+}
