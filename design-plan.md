@@ -1,181 +1,194 @@
-# Design Plan: invoicer / task-invoicer-redesign-v8
-
-## Product Type
-web-app
-
-## Design Context
-Invoicer is a public-facing invoicing SaaS with an authenticated workspace for freelancers and small business owners who need to create branded invoices, manage clients, reuse catalog items, generate PDFs, and manually track payments without accounting expertise. The product already includes a landing page, dashboard, invoice list/detail flows, client management, settings, and onboarding; the current task is to define a redesign that makes those existing flows feel more trustworthy, premium, and easier to understand at a glance. Because users are handling money, client-facing documents, and overdue balances, the interface has to reduce anxiety while still feeling competent enough to justify using it as the system of record for billing.
+Wrote [design-plan.md](/home/jeeves/agency/worktrees/invoicer/task-invoicer-redesign-v8/design-plan.md).
+is a single-account invoicing SaaS for freelancers and small service businesses who need to create branded invoices, manage clients, reuse catalog items, and track payments without feeling like they are using accounting software. The current functional spec preserves every workflow and route, so this design task is about redesigning the public marketing surface and the authenticated workspace without changing product scope. The design has to solve two trust problems at once: convince non-technical owners that the product is easy and worth adopting, and make the invoices, statuses, and money views feel credible enough to run real client work through. The most important flows to support visually are acquisition on `/`, quick financial orientation on `/dashboard`, invoice authoring on `/invoices/new`, and lifecycle management on `/invoices/[id]`.
 
 ## Domain Design Signals
 ### Desired Signals
-- Financially trustworthy without looking like a bank portal or bookkeeping software for accountants.
-- Professional enough that a freelancer believes the invoices produced here will make them look credible to clients.
-- Calm operational control for solo operators who need to know what is owed, what is overdue, and what was paid this month immediately.
-- Fast, low-friction document creation with obvious progress from setup to draft to sent to paid.
-- Polished and premium in the FreshBooks sense: high taste, approachable, and not intimidating to non-experts.
-- Data clarity around statuses, totals, due dates, and payment history, with strong typographic handling of money values.
-- Focused scope that feels deliberately specialized in invoicing rather than bloated into a faux all-in-one ERP.
+- Professional enough that a freelancer would feel confident sending client-facing invoices generated from it.
+- Calm financial control, with money and status information feeling legible rather than stressful.
+- Fast-moving and practical for solo operators who switch between client work and admin work all day.
+- Approachable to non-accountants, with plain-language structure and low cognitive overhead.
+- Premium in finish, so the free offering still feels valuable instead of stripped down.
+- Document credibility, using invoice-paper cues, tabular numerals, and status semantics that feel precise.
+- Focused and disciplined, with clear hierarchy around outstanding balances, overdue items, and next actions.
 
 ### Anti-Signals
-- Cluttered open-source admin-panel energy like a configurable back office tool.
-- Crypto, trading-dashboard, or cyberpunk neon aesthetics that make money handling feel speculative instead of dependable.
-- Cute freelancer-template tropes such as soft pastel blobs, mascot illustrations, or whimsical startup art.
-- Enterprise accounting-suite density with tiny controls, spreadsheet walls, and jargon-heavy navigation.
-- Generic “modern SaaS” sameness with white cards, purple gradients, and interchangeable dashboard components.
-- Lifestyle-brand softness that underplays the seriousness of invoices, payment terms, and overdue balances.
-- Roadmap theater that visually foregrounds unsupported features like time tracking, client portals, teams, or payment gateways.
+- Crypto, trading, or fintech-speculation aesthetics with neon glows and performance-dashboard energy.
+- Open-source admin-panel clutter that feels configurable but intimidating.
+- Enterprise ERP heaviness with cramped controls, dense chrome, and back-office bureaucracy.
+- Cheap template-marketplace styling that makes the product feel disposable.
+- Cute bookkeeping visuals or illustration-first SMB tropes that trivialize money and collections.
+- Generic startup landing-page gradients and abstract blobs with no product proof.
+- Overly sterile monochrome minimalism that hides urgency, payment state, and operational clarity.
 
 ## Visual Direction
-The redesign should refine the product’s existing dark-only, blue-accent system rather than replace it: the mood is disciplined, nocturnal, and premium, like a well-lit studio workspace for serious client work. Color should stay grounded in matte charcoals and graphite surfaces, with electric azure reserved for primary actions, amount-due emphasis, and key navigation states; semantic green, amber, and red should carry payment meaning without turning the UI into a rainbow dashboard. Typography should remain a neutral grotesk in the Inter family with crisp hierarchy, slightly tighter display headlines on marketing surfaces, and tabular numerals wherever money or dates appear. Spacing should be generous on the landing page and medium-dense inside the app, so the workspace feels efficient rather than sparse while still giving totals, tables, and forms enough breathing room to read instantly. Surfaces should feel layered and tactile through soft borders, restrained shadow, occasional blur on top navigation, and subtle gradient glow only where conversion or hierarchy needs lift; imagery should come from invoice documents, dashboard modules, and UI compositions, not stock photos. Interaction tone should be composed and direct, with minimal chrome, clear hover/focus states, and an emotional posture of “I am in control of billing, and my clients will read this as professional.”
+Extend the existing dark product direction rather than replacing it, but refine it from generic dark SaaS into a graphite-and-cobalt invoicing workspace with warmer document accents. The overall mood should be composed, premium, and operational: matte charcoal surfaces, precise blue action states, restrained semantic colors, and occasional paper-tint previews that remind users they are producing client-facing documents. Typography should stay in the Inter family so implementation remains realistic, with compact semibold headings, quiet labels, and tabular figures that make amounts, invoice numbers, and dates feel exact. Spacing should separate by context: marketing sections are spacious and persuasive, while dashboard and invoice views are moderately dense and highly scannable. Surface language should rely on thin borders, layered dark panels, and minimal shadow rather than glassmorphism; image treatment should be product-led, using dashboard and invoice compositions instead of stock photography. Interaction tone should feel decisive and low-friction, with crisp hover states, subtle motion, and an emotional posture of being in control of cash flow rather than wrestling with accounting software.
 
 ## Design Rationale
-This direction fits the audience because the user is usually the owner, operator, and bookkeeper at once; they want the polish of FreshBooks, the simplicity of Wave and Zoho for non-accountants, and none of the utilitarian clutter associated with Invoice Ninja. The strongest visual emphasis should go to the product proof that matters most: professional invoice output, the top-line money metrics on the dashboard, and the amount due / status system inside invoice detail. The dashboard should feel calm and legible with fast-read KPI cards and disciplined tables; the invoice composer should be more data-dense but still obviously structured into invoice details, client selection, line items, totals, and supporting notes. The landing page should be persuasive, but its persuasion should come from visible product quality, a free unlimited core offer, and the message that this tool helps users look professional and get paid, not from inflated feature claims. Research shows UI/UX is a moat in this category, especially for small business owners who are not tech-savvy, so the redesign needs to turn clarity and taste into trust. Because the current product is still narrower than some competitors, the design should visually celebrate focused invoicing and payment tracking rather than mimic a full accounting suite it does not yet provide.
+The research brief points to a clear opening between FreshBooks-level polish and the free, generous positioning associated with Wave and Zoho Invoice, so the redesign should feel easier and more elegant than traditional invoicing software without looking cheap. The visually dominant messages should be professional output, fast setup, and immediate cash-flow clarity: on marketing, that means the hero, dashboard proof, and free pricing claim; in-app, that means outstanding totals, overdue signals, invoice status, and real-time totals during invoice creation. Dashboard and invoice lifecycle screens should be data-dense but calm, using hierarchy and contrast instead of compression; onboarding, settings, and form-heavy areas should feel quieter and more guided. Trust comes from concrete product proof, consistent financial semantics, invoice-document cues, and avoiding the utilitarian clutter called out in Invoice Ninja while preserving the non-intimidating simplicity users value in Wave. This direction also respects the current codebase, which already uses a dark theme, a blue accent, and custom Tailwind-built components, but needs sharper hierarchy and a less interchangeable SaaS look.
 
 ## Screens to Generate
 
 ### Screen 1: Marketing Landing Page
 - **Output file:** landing-prototype.html
 - **Device type:** DESKTOP
-- **Purpose:** This is the public conversion page for freelancers and small business owners evaluating whether Invoicer is credible enough to handle their invoicing. It must communicate product quality, ease of use, and the free unlimited core offer within seconds while grounding every claim in the actual product: invoicing, clients, catalog items, branded PDFs, and payment tracking.
+- **Purpose:** Public acquisition page for freelancers and small business owners deciding whether Invoicer is credible, simple, and generous enough to try. It must translate the promise of free, professional invoicing into immediate visual trust while previewing the actual app experience.
 **Visual Priorities:**
-- Professional invoice output and product UI proof above the fold.
-- A clear promise around looking professional and getting paid faster.
-- Free-to-start positioning with no client or invoice limits.
-- The three-step workflow from setup to invoice creation to payment tracking.
-- A premium dark aesthetic that feels more polished than utilitarian competitors.
-**Stitch prompt:**
+- Professional invoice creation and payment clarity must be obvious in the first viewport.
+- The free core offer and low-friction signup message must read within seconds without making the product feel cheap.
+- Product proof should dominate over abstract branding, using dashboard and invoice mockups instead of lifestyle imagery.
+- The page should feel easier and more polished than accounting software, but still serious about money.
+- **Stitch prompt:**
 ```md
-Premium dark invoicing landing page for freelancers and small business owners, polished and credible with a calm studio-finance atmosphere.
+Confident, polished desktop landing page for a free invoicing SaaS, with a calm premium atmosphere and strong product-proof visuals for freelancers and small service businesses.
 
-DESIGN SYSTEM (REQUIRED):
+**DESIGN SYSTEM (REQUIRED):**
 - Platform: Web, desktop-first
-- Palette: Midnight Graphite #0F0F0F page background, Slate Surface #1A1A1A cards and sections, Elevated Charcoal #242424 inputs and nested panels, Low-Contrast Border #2E2E2E dividers, Electric Azure #178DEE primary action, Sky Hover #3BA2F5 hover accent, White Smoke #F5F5F5 primary text, Soft Zinc #A0A0A0 secondary text, Quiet Carbon #6B6B6B muted text, Success Emerald #22C55E paid states, Warning Amber #F59E0B alert states, Danger Red #EF4444 overdue/error states
-- Typography: Inter-style neutral grotesk, tight display headlines, medium-weight UI labels, tabular numerals for currency and dates
-- Shape and elevation: rounded 16px to 24px surfaces, restrained shadow, matte panels, occasional glass blur only for sticky navigation
+- Palette: Graphite Canvas (#0F1115 background), Carbon Surface (#171B22 primary panels), Slate Lift (#202632 elevated cards and inputs), Cobalt Action (#178DEE primary buttons and active states), Cobalt Hover (#3BA2F5 interaction hover), Ice Text (#F3F6FA headings and key numbers), Mist Text (#98A2B3 secondary text), Ledger Line (#2C3442 borders and dividers), Paper Tint (#F7F4EE invoice/document surfaces), Paper Ink (#1E2430 document text), Success Emerald (#1FB36A paid states), Warning Amber (#E7A63B partial states), Danger Red (#E45858 overdue and destructive states)
+- Typography: Inter or a nearly identical neutral grotesk; semibold compact headings, medium-weight UI labels, tabular numerals for money, restrained uppercase table headers
+- Layout: 12-column desktop grid, max content width 1280px, 32px outer padding, 24px card padding, generous vertical rhythm between sections
+- Shapes: 18px card radius, 12px input radius, pill badges for statuses, crisp 1px borders, minimal shadows
+- Motion: 160-220ms ease-out transitions, subtle fade and rise reveals only, no bounce, no parallax
 
-VISUAL LANGUAGE:
-Use layered charcoal surfaces, subtle radial blue glow behind hero and final CTA, crisp invoice-document composition, and product-led imagery only. Headlines should feel sharp and premium, body copy clear and non-jargony, and money/status UI should be visually precise. Avoid pastel startup illustration packs, neon crypto dashboards, white-card fintech templates, or anything that suggests unsupported accounting-suite breadth.
+**VISUAL LANGUAGE:**
+- Use a premium dark editorial-product look: matte graphite page, cobalt action color, and warm paper-tint invoice previews inside the hero mockup.
+- Keep the landing page visually related to the authenticated app, not like a separate brand campaign.
+- Favor product UI compositions, invoice snippets, status pills, and numeric highlights over stock photography or illustrations.
+- Avoid generic startup blobs, glassmorphism, crypto-dashboard neon, or cheerful bookkeeping cartoons.
 
-PAGE STRUCTURE:
-1. Sticky top navigation with compact wordmark, anchor links for Features / How It Works / Pricing, secondary Sign In link, and a bright primary CTA button labeled Get Started Free; translucent dark backdrop blur.
-2. Hero section in a two-column layout: left side with eyebrow chip for free plan, assertive headline about professional invoices and getting paid, concise supporting paragraph, dual CTA row, and three compact trust chips for Branded PDFs / No accounting jargon / Track partial payments; right side with a large angled invoice card plus a slim dashboard metrics strip showing outstanding, overdue, and paid this month.
-3. Product proof band directly under hero showing a realistic invoice excerpt with line items, subtotal, tax, total, and status pill; make the document feel client-ready, not like a wireframe.
-4. Six-card feature grid for Effortless invoicing, Client management, Payment tracking, Catalog items, At-a-glance dashboard, and Professional PDF generation; each card uses an icon container, concise heading, and explanatory paragraph.
-5. Dashboard showcase section with split layout: left side editorial copy about cash-flow clarity, right side a framed dashboard module containing three KPI cards and a compact recent invoices list with status pills.
-6. How-it-works section with three numbered steps in equal cards: Set up profile, Build your invoice, Send and track; use strong ordinal markers and clean connective rhythm.
-7. Pricing section with one centered featured pricing card for the free core plan showing $0/month, no client limits, no invoice limits, and a short roadmap note for team features and advanced reporting; include a full-width CTA inside the card.
-8. Final conversion banner using a more saturated azure gradient surface, short headline about clients judging the invoice before they pay it, supporting copy, and a high-contrast CTA.
-9. Footer with brand block, product links, company/legal columns, and understated dividers.
+**PAGE STRUCTURE:**
+1. Sticky top navigation with wordmark, anchor links for Features / How It Works / Pricing, secondary "Sign In" action, and high-contrast primary "Get Started Free" button.
+2. Hero section with eyebrow "Free to start — no credit card required," bold headline "Professional invoices that get paid.", concise subheadline, primary CTA, secondary CTA, and a large split product composition showing a dashboard panel beside a warm invoice preview card.
+3. Product proof strip directly under hero with concise proof chips such as unlimited invoices, unlimited clients, branded PDF generation, dashboard payment tracking, and 20 supported currencies.
+4. Six-card feature grid for Effortless invoicing, Client management, Payment tracking, Catalog items, At-a-glance dashboard, and Professional PDF, using icon-led cards with strong hierarchy and one-sentence value framing.
+5. Dashboard showcase section with an oversized app screenshot composition focused on outstanding, overdue, paid-this-month, and recent invoices, plus supporting copy that frames clarity and cash-flow control.
+6. How-it-works section with three clearly sequenced steps: set up profile, build invoice, send and track, using structured step cards rather than playful illustrations.
+7. Pricing section with a single dominant free-plan card that highlights unlimited invoices, unlimited clients, branded PDFs, payment tracking, catalog items, and multi-currency support, plus roadmap note for team features and advanced reporting.
+8. Final CTA section emphasizing "Your clients judge your invoice before they pay it." with one strong CTA and compact supporting line.
+9. Footer with product, company, and legal columns in a restrained low-contrast layout.
 ```
 
-### Screen 2: Authenticated Dashboard
+### Screen 2: Dashboard Workspace
 - **Output file:** dashboard-prototype.html
 - **Device type:** DESKTOP
-- **Purpose:** This is the first screen a signed-in user sees and the place where they decide whether the product gives them real control over cash flow. It must summarize what matters now, direct users into invoice creation, and make unpaid or overdue work impossible to miss without feeling alarmist.
+- **Purpose:** Main authenticated home screen where a business owner quickly understands what is outstanding, what is overdue, and what needs action today. This screen should make the app feel immediately useful and financially trustworthy after login.
 **Visual Priorities:**
-- Outstanding, overdue, and paid-this-month figures as the dominant first read.
-- A clear “New Invoice” primary action in the page header.
-- Recent invoices and overdue items presented with high scanability.
-- Status colors that feel authoritative, not decorative.
-- A left navigation shell that makes the app feel cohesive and premium.
-**Stitch prompt:**
+- Outstanding, overdue, and paid-this-month amounts must dominate the screen with clear numeric hierarchy.
+- The user should understand where to act next: create invoice, inspect overdue accounts, or open recent invoices.
+- Data density should feel controlled and calm, not like a finance terminal.
+- Status badges, due dates, and money values must read as precise and dependable.
+- **Stitch prompt:**
 ```md
-Premium dark invoicing dashboard with calm financial oversight, crisp data hierarchy, and a confident operator-workspace mood.
+Calm, high-clarity desktop dashboard for an invoicing workspace, with a disciplined dark atmosphere and immediate cash-flow visibility for a solo business owner.
 
-DESIGN SYSTEM (REQUIRED):
+**DESIGN SYSTEM (REQUIRED):**
 - Platform: Web, desktop-first
-- Palette: Midnight Graphite #0F0F0F page background, Slate Surface #1A1A1A cards and sections, Elevated Charcoal #242424 inputs and nested panels, Low-Contrast Border #2E2E2E dividers, Electric Azure #178DEE primary action, Sky Hover #3BA2F5 hover accent, White Smoke #F5F5F5 primary text, Soft Zinc #A0A0A0 secondary text, Quiet Carbon #6B6B6B muted text, Success Emerald #22C55E paid states, Warning Amber #F59E0B alert states, Danger Red #EF4444 overdue/error states
-- Typography: Inter-style neutral grotesk, tight display headlines, medium-weight UI labels, tabular numerals for currency and dates
-- Shape and elevation: rounded 16px to 24px surfaces, restrained shadow, matte panels, occasional glass blur only for sticky navigation
+- Palette: Graphite Canvas (#0F1115 background), Carbon Surface (#171B22 primary panels), Slate Lift (#202632 elevated cards and inputs), Cobalt Action (#178DEE primary buttons and active states), Cobalt Hover (#3BA2F5 interaction hover), Ice Text (#F3F6FA headings and key numbers), Mist Text (#98A2B3 secondary text), Ledger Line (#2C3442 borders and dividers), Paper Tint (#F7F4EE invoice/document surfaces), Paper Ink (#1E2430 document text), Success Emerald (#1FB36A paid states), Warning Amber (#E7A63B partial states), Danger Red (#E45858 overdue and destructive states)
+- Typography: Inter or a nearly identical neutral grotesk; semibold compact headings, medium-weight UI labels, tabular numerals for money, restrained uppercase table headers
+- Layout: 12-column desktop grid, 240px left navigation rail, 1280px content container, 32px outer padding, 24px card padding, strong vertical separation between summary and table zones
+- Shapes: 18px card radius, 12px input radius, pill badges for statuses, crisp 1px borders, minimal shadows
+- Motion: 160-220ms ease-out transitions, subtle fade and rise reveals only, no bounce, no parallax
 
-VISUAL LANGUAGE:
-Make the shell feel substantial through a dark sidebar, slim dividers, and disciplined spacing. KPI cards should have subtle tonal depth and clear semantic color cues, while tables remain highly legible and restrained. Avoid flashy analytics-dashboard gimmicks, rainbow charts, dense enterprise BI widgets, or generic light-mode SaaS tables.
+**VISUAL LANGUAGE:**
+- Make the dashboard feel like an operational control room for a small business, not a speculative finance dashboard.
+- Use color sparingly and semantically: cobalt for action, emerald for received money, amber for partial states, red for overdue urgency.
+- Emphasize numerical calm with tabular figures, clean separators, and controlled contrast.
+- Avoid Bloomberg-terminal density, crypto charts, KPI clutter, or bright enterprise-dashboard gradients.
 
-PAGE STRUCTURE:
-1. Full desktop app shell with fixed left sidebar containing Invoicer wordmark, primary nav items for Dashboard / Invoices / Clients, secondary items for Catalog / Settings, and a minimal sign-out action with user identity label at the bottom.
-2. Top page header inside the main pane with page title Dashboard and a strong primary button for New Invoice.
-3. Row of three large KPI cards for Total Outstanding, Total Overdue, and Paid This Month; each card includes a label, dominant tabular value, small explanatory sublabel, and a restrained icon badge.
-4. Slim one-line currency notice beneath KPI cards clarifying that dashboard totals are shown in the default currency only.
-5. Main content area in a two-column desktop grid: left side a larger Recent Invoices table card with columns for client, invoice number, amount, status, and due date; right side an Overdue Invoices panel ordered by oldest due date first with amount due and days overdue.
-6. Use realistic populated data rather than placeholders, with one invoice in partial status, one paid, and at least one overdue row in red-accent treatment.
-7. Empty-state affordances should not dominate; this screen should show an active working business with meaningful invoice volume.
+**PAGE STRUCTURE:**
+1. Persistent app shell with left navigation rail for Dashboard, Invoices, Clients, Catalog, and Settings; compact brand lockup at top and account utility area at bottom.
+2. Page header row with "Dashboard" title, one-line explanatory subtitle, and high-contrast "New Invoice" primary button.
+3. Three primary metric cards for Total Outstanding, Total Overdue, and Paid This Month, each with a subtle semantic accent treatment and large tabular numeric values.
+4. Compact currency disclaimer or context note placed below the metric row, styled quietly so it informs without competing.
+5. Main content split into a wide Recent Invoices table and a narrower Overdue Invoices panel; both should use consistent table styling, precise status badges, and clickable row affordances.
+6. Recent Invoices table with columns for client, invoice number, amount, status, and due date, plus tidy row hover behavior and empty-state treatment.
+7. Overdue panel with stacked rows that prioritize client, amount due, days overdue, and a direct action affordance to open the invoice.
+8. Secondary lower strip or compact side card for quick operational context such as recent activity, next recommended action, or a concise "keep cash moving" helper message based on current app data patterns.
 ```
 
-### Screen 3: New Invoice Composer
-- **Output file:** invoice-compose-prototype.html
+### Screen 3: Invoice Builder
+- **Output file:** invoice-builder-prototype.html
 - **Device type:** DESKTOP
-- **Purpose:** This is the product’s highest-value creation workflow and needs to make invoice building feel controlled, fast, and free of accounting anxiety. The screen must support client lookup, line-item entry, catalog reuse, tax/discount logic, and a live totals summary without looking like a spreadsheet.
+- **Purpose:** Primary creation screen where users turn service work into a client-ready invoice. It must feel significantly easier than a spreadsheet while still giving confidence that totals, payment terms, and client details are under control.
 **Visual Priorities:**
-- The invoice-building card as the primary focal surface.
-- Client selection and line items as the dominant interactive zones.
-- Live subtotal, tax, discount, and total calculations that are immediately readable.
-- Save-as-draft action and overall flow confidence from top to bottom.
-- Dense information architecture without visual clutter.
-**Stitch prompt:**
+- The client selection and invoice metadata must be immediately understandable and easy to edit.
+- The line-item editor must dominate, with totals and monetary consequences visible without scrolling far.
+- The screen should feel calm and guided, not like a complex accounting form.
+- The user must sense that creating a polished invoice is the product’s core competence.
+- **Stitch prompt:**
 ```md
-Dark premium invoice composer for service businesses, focused and efficient with a calm document-building atmosphere.
+Focused, premium desktop invoice-creation screen with a calm document-authoring atmosphere and precise financial structure for non-accountants.
 
-DESIGN SYSTEM (REQUIRED):
+**DESIGN SYSTEM (REQUIRED):**
 - Platform: Web, desktop-first
-- Palette: Midnight Graphite #0F0F0F page background, Slate Surface #1A1A1A cards and sections, Elevated Charcoal #242424 inputs and nested panels, Low-Contrast Border #2E2E2E dividers, Electric Azure #178DEE primary action, Sky Hover #3BA2F5 hover accent, White Smoke #F5F5F5 primary text, Soft Zinc #A0A0A0 secondary text, Quiet Carbon #6B6B6B muted text, Success Emerald #22C55E paid states, Warning Amber #F59E0B alert states, Danger Red #EF4444 overdue/error states
-- Typography: Inter-style neutral grotesk, tight display headlines, medium-weight UI labels, tabular numerals for currency and dates
-- Shape and elevation: rounded 16px to 24px surfaces, restrained shadow, matte panels, occasional glass blur only for sticky navigation
+- Palette: Graphite Canvas (#0F1115 background), Carbon Surface (#171B22 primary panels), Slate Lift (#202632 elevated cards and inputs), Cobalt Action (#178DEE primary buttons and active states), Cobalt Hover (#3BA2F5 interaction hover), Ice Text (#F3F6FA headings and key numbers), Mist Text (#98A2B3 secondary text), Ledger Line (#2C3442 borders and dividers), Paper Tint (#F7F4EE invoice/document surfaces), Paper Ink (#1E2430 document text), Success Emerald (#1FB36A paid states), Warning Amber (#E7A63B partial states), Danger Red (#E45858 overdue and destructive states)
+- Typography: Inter or a nearly identical neutral grotesk; semibold compact headings, medium-weight UI labels, tabular numerals for money, restrained uppercase table headers
+- Layout: 12-column desktop grid, 240px left navigation rail, 1280px content container, 32px outer padding, 24px card padding, strong emphasis on the editing canvas
+- Shapes: 18px card radius, 12px input radius, pill badges for statuses, crisp 1px borders, minimal shadows
+- Motion: 160-220ms ease-out transitions, subtle fade and rise reveals only, no bounce, no parallax
 
-VISUAL LANGUAGE:
-The layout should feel like a premium editor, not a bookkeeping spreadsheet: one strong centered composition, consistent section dividers, and precise numeric alignment. Inputs should be dark, tactile, and quiet until interacted with; totals should feel decisive. Avoid spreadsheet chrome, tiny enterprise form controls, playful consumer-app styling, or overly soft rounded wellness UI.
+**VISUAL LANGUAGE:**
+- Treat this like a structured document builder, not a spreadsheet and not a dense ERP form.
+- Introduce warm paper cues inside totals or preview modules so users remember the end result is client-facing.
+- Keep controls custom, crisp, and understated, with the line-item grid and totals panel doing the visual heavy lifting.
+- Avoid tiny inputs, excessive table chrome, bright gradient cards, or a tax-software aesthetic.
 
-PAGE STRUCTURE:
-1. Full desktop app shell with the same left sidebar navigation system as the dashboard.
-2. Header row with breadcrumb back to Invoices, large page title New Invoice, secondary Cancel button, and primary Save as Draft button.
-3. Centered main invoice-builder card with clear horizontal section dividers and generous internal padding.
-4. Invoice Details section using a clean multi-column form grid for invoice number, issue date, due date, and currency; show a generated invoice number already filled in.
-5. Client section with a selected client summary card plus an adjacent visible search field pattern; include a subtle inline action for Add new client but do not open a modal on this screen.
-6. Line Items section as the dominant area: column header row for Description / Qty / Unit Price / Tax / Amount / Reorder / Remove, several realistic line item rows, one open catalog autocomplete dropdown under a description field, checkbox tax toggles, reorder arrows, and a dashed Add line item control beneath the table.
-7. Right-aligned live totals summary under the line items showing subtotal, tax, discount, and total in tabular numerals; total must be the strongest value in this region.
-8. Additional Details section with tax rate input, discount input plus percentage/fixed segmented toggle, payment terms field, and notes textarea.
-9. Footer action bar attached to the bottom of the main card with repeated Cancel and Save as Draft actions for long-form usability.
+**PAGE STRUCTURE:**
+1. Persistent app shell with left navigation rail and a page header containing breadcrumbs, "New Invoice" title, and primary save/create action cluster.
+2. Top configuration band with two large cards: client selection on the left and invoice metadata on the right, covering invoice number, issue date, due date, and currency.
+3. Client selection card with searchable client picker, visible selected-client summary state, and a compact inline affordance to add a new client without leaving the page.
+4. Main line-items editor card occupying the largest area, with a structured editable table for description, quantity, unit price, taxable toggle, row amount, reorder controls, and remove-row actions.
+5. Show one active line item with a catalog autocomplete dropdown or suggestion panel open, proving that reusable catalog items accelerate entry.
+6. Secondary controls below the line-items grid for adding a line item, applying tax rate, choosing discount type, and entering discount value.
+7. Right-side or lower totals summary card with subtotal, tax amount, discount amount, total, amount paid, and amount due, all in tabular numerals with clear visual hierarchy.
+8. Notes and payment terms section in a quieter panel, with enough space for default terms and invoice-specific notes.
+9. Sticky bottom action bar or persistent header actions for save draft, cancel, and final create action, keeping the workflow anchored.
 ```
 
-### Screen 4: Invoice Detail and Payment History
+### Screen 4: Invoice Detail and Payment Tracking
 - **Output file:** invoice-detail-prototype.html
 - **Device type:** DESKTOP
-- **Purpose:** This screen proves the product’s end result: a professional invoice artifact, clear payment status, and a trustworthy record of what is still owed. It matters because users and their clients both judge the product by the quality of this document and by how clearly payments, due dates, and next actions are presented.
+- **Purpose:** Operational detail screen for reviewing a single invoice, confirming what has been sent, what is still owed, and what action comes next. This is where the product proves it can manage the full invoice lifecycle, not just generate a form.
 **Visual Priorities:**
-- Invoice number, status, and top actions at the top of the screen.
-- A polished invoice preview that looks client-ready, not like an internal admin table.
-- Amount due as the most visually emphasized financial figure.
-- Payment history as a separate but clearly related accountability surface.
-- Send, record payment, download PDF, duplicate, and void actions presented with control.
-**Stitch prompt:**
+- Invoice status, amount due, due date, and next actions must dominate above the fold.
+- The page must feel trustworthy enough to represent a real client-facing financial document.
+- Payment history and status progression should be instantly legible.
+- Download PDF, send, duplicate, void, and record payment actions must feel controlled rather than risky.
+- **Stitch prompt:**
 ```md
-Client-ready dark invoice detail screen with premium document presentation, strong payment clarity, and a composed billing-record atmosphere.
+Composed, high-trust desktop invoice detail screen with a premium dark workspace atmosphere and clear payment-lifecycle visibility for a real client account.
 
-DESIGN SYSTEM (REQUIRED):
+**DESIGN SYSTEM (REQUIRED):**
 - Platform: Web, desktop-first
-- Palette: Midnight Graphite #0F0F0F page background, Slate Surface #1A1A1A cards and sections, Elevated Charcoal #242424 inputs and nested panels, Low-Contrast Border #2E2E2E dividers, Electric Azure #178DEE primary action, Sky Hover #3BA2F5 hover accent, White Smoke #F5F5F5 primary text, Soft Zinc #A0A0A0 secondary text, Quiet Carbon #6B6B6B muted text, Success Emerald #22C55E paid states, Warning Amber #F59E0B alert states, Danger Red #EF4444 overdue/error states
-- Typography: Inter-style neutral grotesk, tight display headlines, medium-weight UI labels, tabular numerals for currency and dates
-- Shape and elevation: rounded 16px to 24px surfaces, restrained shadow, matte panels, occasional glass blur only for sticky navigation
+- Palette: Graphite Canvas (#0F1115 background), Carbon Surface (#171B22 primary panels), Slate Lift (#202632 elevated cards and inputs), Cobalt Action (#178DEE primary buttons and active states), Cobalt Hover (#3BA2F5 interaction hover), Ice Text (#F3F6FA headings and key numbers), Mist Text (#98A2B3 secondary text), Ledger Line (#2C3442 borders and dividers), Paper Tint (#F7F4EE invoice/document surfaces), Paper Ink (#1E2430 document text), Success Emerald (#1FB36A paid states), Warning Amber (#E7A63B partial states), Danger Red (#E45858 overdue and destructive states)
+- Typography: Inter or a nearly identical neutral grotesk; semibold compact headings, medium-weight UI labels, tabular numerals for money, restrained uppercase table headers
+- Layout: 12-column desktop grid, 240px left navigation rail, 1280px content container, 32px outer padding, 24px card padding, balanced split between summary actions and document detail
+- Shapes: 18px card radius, 12px input radius, pill badges for statuses, crisp 1px borders, minimal shadows
+- Motion: 160-220ms ease-out transitions, subtle fade and rise reveals only, no bounce, no parallax
 
-VISUAL LANGUAGE:
-Treat the main invoice card like a polished digital document embedded inside a premium workspace. Metadata, totals, and payment history should feel exact and accountable, with restrained status color and immaculate table alignment. Avoid making this resemble a PDF viewer chrome, a bare CRUD admin detail page, or a glossy fintech payment portal.
+**VISUAL LANGUAGE:**
+- Blend operational dashboard cues with a polished invoice-document presentation so the screen feels both actionable and client-ready.
+- Use semantic color carefully to distinguish sent, partial, paid, overdue, and void states without making the screen noisy.
+- Let the invoice document module feel slightly warmer and more paper-like than the surrounding workspace.
+- Avoid cluttered activity feeds, skeuomorphic paper textures, or aggressive warning-red overuse.
 
-PAGE STRUCTURE:
-1. Full desktop app shell with the same sidebar system used across app screens.
-2. Sticky page header with back-to-invoices affordance, title line reading Invoice INV-000X, visible status badge, and an action cluster containing Send Invoice, Record Payment, Download PDF, and a compact more-actions trigger for Duplicate Invoice / Void Invoice.
-3. Large centered invoice preview card as the hero surface: bill-to block on the left, business identity and logo block on the right, a three-column metadata strip for invoice number / issue date / due date, and a spacious itemized line-items table.
-4. Totals block anchored to the lower right of the invoice preview with subtotal, tax, discount, total, amount paid, and a high-emphasis Amount Due capsule using the azure accent.
-5. Notes and Payment Terms region below the totals with subtle section labels and readable body text.
-6. Separate Payment History card below the invoice preview containing a clean table for date, amount, method, and reference/note, plus a minimal remove action at row end.
-7. Use realistic data showing a partially paid invoice so the status system, amount paid, and amount due hierarchy are all visible at once.
+**PAGE STRUCTURE:**
+1. Persistent app shell with left navigation rail and a page-level breadcrumb back to Invoices.
+2. Hero header card with invoice number, client identity, high-contrast status badge, amount due, due date, and a tight action cluster for Download PDF, Send Invoice, Record Payment, Duplicate, and Void.
+3. Summary metric strip with compact cards for total, amount paid, amount due, issue date, and payment terms, using precise tabular numerals.
+4. Main content area split into a large invoice presentation card and a right-side operational rail.
+5. Invoice presentation card styled as a clean digital document with business identity, client block, line-item table, subtotal/tax/discount/total stack, notes, and terms.
+6. Operational rail with payment history timeline, each entry showing amount, method, paid date, and reference, plus a compact empty state when no payments exist.
+7. Additional contextual card for client snapshot or invoice lifecycle details, reinforcing ownership, send state, and timing without inventing new product features.
+8. Quiet secondary area for destructive or low-frequency actions, visually separated so the primary job of reviewing and recording payment remains dominant.
 ```
 
 ## Output Files
-- landing-prototype.html → public marketing landing page
-- dashboard-prototype.html → main authenticated dashboard prototype
-- invoice-compose-prototype.html → new invoice composer prototype
-- invoice-detail-prototype.html → invoice detail and payment history prototype
-- design-brief.md → summarized design rationale and design system notes for this redesign
-- .stitch/DESIGN.md → source-of-truth design system for future screens
+- landing-prototype.html → public marketing landing page prototype
+- dashboard-prototype.html → authenticated dashboard workspace prototype
+- invoice-builder-prototype.html → invoice creation workflow prototype
+- invoice-detail-prototype.html → single-invoice detail and payment tracking prototype
+- design-brief.md → summarized visual design specification for implementation handoff
+- .stitch/DESIGN.md → source-of-truth design system derived from the shared prompt system above
 
 ## Notes for Executor
-Generate `.stitch/DESIGN.md` first from the shared design system in these prompts, then produce `design-brief.md`, then generate screens in the order listed above. Keep every screen desktop-only, preserve the dark charcoal + electric azure visual family, and do not introduce stock photography, mascot illustrations, or unsupported feature claims such as time tracking, expense management, payment gateway integrations, client portals, or team collaboration as primary UI.
+Create `.stitch/DESIGN.md` first from the shared design system used across these prompts, then generate the four desktop screens against it. Keep product scope exactly aligned to the current routes and features: no team-management UI, no payment-processor widgets, no analytics beyond the existing dashboard stats, and no light-theme divergence from the established dark workspace.
