@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1782ee",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "surface-card": "#202632",
+                        "surface-nav": "#171B22",
+                        "paper": "#F7F4EE"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem", // 18px as requested
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex">
+<!-- PERSISTENT SHELL: Left Nav Rail -->
+<aside class="w-[240px] bg-surface-nav border-r border-slate-800 flex flex-col fixed h-full z-20">
+<div class="p-6 flex items-center gap-3">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">draw</span>
+</div>
+<span class="font-bold text-lg tracking-tight">Graphite</span>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<div class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white transition-colors cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg cursor-pointer border border-primary/20">
+<span class="material-symbols-outlined">description</span>
+<span class="text-sm font-medium">Invoices</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white transition-colors cursor-pointer">
+<span class="material-symbols-outlined">group</span>
+<span class="text-sm font-medium">Clients</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white transition-colors cursor-pointer">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-sm font-medium">Reports</span>
+</div>
+</nav>
+<div class="p-4 mt-auto border-t border-slate-800">
+<div class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</div>
+</div>
+</aside>
+<!-- MAIN CONTENT AREA -->
+<main class="flex-1 ml-[240px] flex flex-col min-h-screen relative">
+<!-- HEADER -->
+<header class="sticky top-0 z-10 bg-background-dark/80 backdrop-blur-md border-b border-slate-800 px-8 py-4 flex items-center justify-between">
+<div class="flex flex-col">
+<div class="flex items-center gap-2 text-xs text-slate-500 font-medium mb-1">
+<span>Invoices</span>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-slate-300">New Invoice</span>
+</div>
+<h1 class="text-xl font-bold">New Invoice</h1>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors">Cancel</button>
+<button class="px-4 py-2 text-sm font-semibold bg-surface-card border border-slate-700 rounded-lg hover:bg-slate-700 transition-colors">Save Draft</button>
+<button class="px-6 py-2 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 transition-shadow shadow-lg shadow-primary/20">Create Invoice</button>
+</div>
+</header>
+<!-- SCROLLABLE EDITOR -->
+<div class="p-8 max-w-6xl mx-auto w-full space-y-6">
+<!-- CONFIGURATION BAND -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Client Picker -->
+<div class="col-span-7 bg-surface-card rounded-xl p-6 border border-slate-800 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<label class="text-xs font-bold uppercase tracking-wider text-slate-500">Client</label>
+<button class="text-xs text-primary font-semibold hover:underline">Change Client</button>
+</div>
+<div class="flex items-start gap-4">
+<div class="size-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">business</span>
+</div>
+<div>
+<h3 class="text-lg font-bold text-white">Acme Corp</h3>
+<p class="text-sm text-slate-400">123 Business Way, New York, NY 10001</p>
+<p class="text-sm text-slate-400">billing@acmecorp.com</p>
+</div>
+</div>
+</div>
+<!-- Invoice Metadata -->
+<div class="col-span-5 bg-surface-card rounded-xl p-6 border border-slate-800 shadow-sm">
+<label class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 block">Invoice Details</label>
+<div class="space-y-3">
+<div class="flex justify-between items-center py-1 border-b border-slate-700/50">
+<span class="text-sm text-slate-400">Invoice No.</span>
+<span class="text-sm font-mono text-white">INV-2023-001</span>
+</div>
+<div class="flex justify-between items-center py-1 border-b border-slate-700/50">
+<span class="text-sm text-slate-400">Issued</span>
+<input class="bg-transparent border-none text-right text-sm font-medium p-0 focus:ring-0 text-white w-24" type="text" value="Oct 24, 2023"/>
+</div>
+<div class="flex justify-between items-center py-1 border-b border-slate-700/50">
+<span class="text-sm text-slate-400">Due Date</span>
+<input class="bg-transparent border-none text-right text-sm font-medium p-0 focus:ring-0 text-white w-24" type="text" value="Nov 07, 2023"/>
+</div>
+<div class="flex justify-between items-center py-1">
+<span class="text-sm text-slate-400">Currency</span>
+<span class="text-sm font-medium text-white">USD ($)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- MAIN LINE-ITEMS EDITOR -->
+<div class="flex gap-6 items-start">
+<div class="flex-1 space-y-6">
+<div class="bg-paper rounded-xl shadow-2xl overflow-hidden border border-slate-200">
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-200 bg-slate-50/50 text-slate-500 uppercase text-[10px] font-bold tracking-widest">
+<div class="col-span-5">Description</div>
+<div class="col-span-1 text-center">Qty</div>
+<div class="col-span-2 text-right">Unit Price</div>
+<div class="col-span-1 text-center">Tax</div>
+<div class="col-span-2 text-right">Amount</div>
+<div class="col-span-1"></div>
+</div>
+<!-- Line Items -->
+<div class="divide-y divide-slate-100">
+<!-- Row 1: Completed -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center group">
+<div class="col-span-5">
+<input class="w-full bg-transparent border-none focus:ring-0 text-slate-800 font-medium p-0" type="text" value="Strategic Brand Identity Design"/>
+</div>
+<div class="col-span-1 text-center">
+<input class="w-full bg-transparent border-none focus:ring-0 text-center text-slate-800 p-0" type="text" value="1"/>
+</div>
+<div class="col-span-2 text-right tabular-nums text-slate-800">
+                                    $4,500.00
+                                </div>
+<div class="col-span-1 flex justify-center">
+<input checked="" class="rounded-md border-slate-300 text-primary focus:ring-primary h-4 w-4" type="checkbox"/>
+</div>
+<div class="col-span-2 text-right tabular-nums font-bold text-slate-900">
+                                    $4,500.00
+                                </div>
+<div class="col-span-1 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-slate-400 hover:text-red-500">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</div>
+<!-- Row 2: Active State with Dropdown -->
+<div class="relative grid grid-cols-12 gap-4 px-6 py-4 items-center bg-primary/5 border-l-4 border-primary">
+<div class="col-span-5 relative">
+<input autofocus="" class="w-full bg-transparent border-none focus:ring-0 text-slate-800 font-medium p-0 placeholder:text-slate-400" placeholder="Start typing service..." type="text"/>
+<!-- Suggestion Panel -->
+<div class="absolute top-full left-0 w-full bg-white shadow-xl rounded-lg border border-slate-200 mt-2 z-30 overflow-hidden">
+<div class="p-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50">From Catalog</div>
+<button class="w-full px-4 py-3 text-left hover:bg-primary hover:text-white transition-colors flex items-center justify-between group">
+<div>
+<div class="text-sm font-semibold text-slate-800 group-hover:text-white">Custom Software Development</div>
+<div class="text-xs text-slate-500 group-hover:text-primary-100">$180.00 / hr</div>
+</div>
+<span class="material-symbols-outlined text-slate-300 group-hover:text-white">add_circle</span>
+</button>
+<button class="w-full px-4 py-3 text-left hover:bg-primary hover:text-white transition-colors flex items-center justify-between group">
+<div>
+<div class="text-sm font-semibold text-slate-800 group-hover:text-white">Design Consultation</div>
+<div class="text-xs text-slate-500 group-hover:text-primary-100">$250.00 / hr</div>
+</div>
+<span class="material-symbols-outlined text-slate-300 group-hover:text-white">add_circle</span>
+</button>
+<div class="p-3 border-t border-slate-100 text-center">
+<button class="text-xs text-primary font-bold hover:underline">Manage Catalog</button>
+</div>
+</div>
+</div>
+<div class="col-span-1 text-center">
+<input class="w-full bg-transparent border-none focus:ring-0 text-center text-slate-800 p-0" type="text" value="1"/>
+</div>
+<div class="col-span-2 text-right">
+<input class="w-full bg-transparent border-none focus:ring-0 text-right text-slate-800 p-0 tabular-nums" type="text" value="0.00"/>
+</div>
+<div class="col-span-1 flex justify-center">
+<input class="rounded-md border-slate-300 text-primary focus:ring-primary h-4 w-4" type="checkbox"/>
+</div>
+<div class="col-span-2 text-right tabular-nums font-bold text-slate-900">
+                                    $0.00
+                                </div>
+<div class="col-span-1"></div>
+</div>
+</div>
+<!-- Add Button -->
+<div class="px-6 py-4 bg-slate-50 border-t border-slate-200">
+<button class="flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors">
+<span class="material-symbols-outlined">add</span>
+                                Add Line Item
+                            </button>
+</div>
+</div>
+<!-- Additional Sections Panel -->
+<div class="bg-surface-card rounded-xl border border-slate-800 p-6 grid grid-cols-2 gap-8">
+<div>
+<label class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Notes</label>
+<textarea class="w-full bg-background-dark border-slate-700 rounded-lg text-sm text-slate-300 focus:ring-primary focus:border-primary h-24 p-3" placeholder="Add any additional context for your client..."></textarea>
+</div>
+<div>
+<label class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">Payment Terms</label>
+<textarea class="w-full bg-background-dark border-slate-700 rounded-lg text-sm text-slate-300 focus:ring-primary focus:border-primary h-24 p-3">Payment is due within 14 days of receipt. Please include the invoice number with your payment.</textarea>
+</div>
+</div>
+</div>
+<!-- TOTALS SUMMARY -->
+<div class="w-80 sticky top-28 space-y-6">
+<div class="bg-surface-card rounded-xl border border-slate-800 p-6 shadow-sm">
+<label class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-6 block">Summary</label>
+<div class="space-y-4">
+<div class="flex justify-between items-center text-sm">
+<span class="text-slate-400">Subtotal</span>
+<span class="tabular-nums text-white">$4,500.00</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<div class="flex items-center gap-1 group">
+<span class="text-slate-400">Tax</span>
+<span class="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded cursor-pointer group-hover:bg-slate-600">8.8%</span>
+</div>
+<span class="tabular-nums text-white">$396.00</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-slate-400">Discount</span>
+<button class="text-primary hover:underline text-xs font-semibold">Apply Discount</button>
+</div>
+<div class="pt-4 border-t border-slate-700">
+<div class="flex justify-between items-end">
+<span class="text-sm font-bold text-slate-300">Total</span>
+<div class="text-right">
+<div class="text-2xl font-bold text-white tabular-nums tracking-tight">$4,896.00</div>
+<div class="text-[10px] font-medium text-slate-500">Amount in USD</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- SECONDARY CONTROLS -->
+<div class="bg-surface-card rounded-xl border border-slate-800 p-6 space-y-4">
+<div class="flex items-center justify-between text-xs">
+<span class="text-slate-500 font-bold uppercase tracking-wider">Settings</span>
+</div>
+<div class="space-y-3">
+<label class="flex items-center justify-between cursor-pointer">
+<span class="text-sm text-slate-400">Recurring Invoice</span>
+<div class="relative inline-flex items-center">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</div>
+</label>
+<label class="flex items-center justify-between cursor-pointer">
+<span class="text-sm text-slate-400">Late Fee Policy</span>
+<div class="relative inline-flex items-center">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</div>
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- STICKY ACTION BAR (Visible on smaller viewports or as final confirmation) -->
+<footer class="mt-auto border-t border-slate-800 bg-background-dark/90 backdrop-blur-sm p-6 flex justify-center">
+<div class="flex items-center gap-12 text-slate-500">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">auto_awesome</span>
+<span class="text-xs font-medium">Autosaved at 2:45 PM</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">verified_user</span>
+<span class="text-xs font-medium">Compliance Checked</span>
+</div>
+</div>
+</footer>
+</main>
+</body></html>

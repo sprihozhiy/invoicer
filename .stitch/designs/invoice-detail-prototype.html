@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Graphite - Invoice INV-2023-001</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#178dee",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#0F1115", // Graphite Canvas
+                        "surface": "#171B22", // Carbon Surface
+                        "card": "#202632", // Slate Lift
+                        "border-ledger": "#2C3442", // Ledger Line
+                        "paper-tint": "#F7F4EE",
+                        "paper-ink": "#1E2430",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.125rem", // 18px radius
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex">
+<!-- Left Navigation Rail -->
+<aside class="w-[240px] flex-shrink-0 bg-surface border-r border-border-ledger flex flex-col h-screen sticky top-0">
+<div class="p-6">
+<h1 class="text-xl font-bold tracking-tight text-primary">Graphite</h1>
+<p class="text-xs text-slate-500 uppercase tracking-widest mt-1">Premium SaaS</p>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 bg-primary/10 text-primary rounded-lg" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-sm font-medium">Invoices</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-sm font-medium">Clients</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-sm font-medium">Reports</span>
+</a>
+</nav>
+<div class="p-4 border-t border-border-ledger">
+<div class="flex items-center gap-3 px-2 py-2">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white">JD</div>
+<div class="overflow-hidden">
+<p class="text-sm font-medium truncate">John Doe</p>
+<p class="text-xs text-slate-500 truncate">Admin Account</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto">
+<div class="max-w-[1280px] mx-auto px-8 py-8">
+<!-- Breadcrumbs -->
+<nav class="flex items-center gap-2 mb-6 text-sm">
+<span class="text-slate-500">Invoices</span>
+<span class="material-symbols-outlined text-xs text-slate-600">chevron_right</span>
+<span class="text-primary font-medium">INV-2023-001</span>
+</nav>
+<!-- Hero Header Card -->
+<div class="bg-card border border-border-ledger rounded-xl p-8 mb-6">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+<div class="flex items-start gap-5">
+<div class="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl">receipt_long</span>
+</div>
+<div>
+<div class="flex items-center gap-3 mb-1">
+<h2 class="text-2xl font-bold tracking-tight">INV-2023-001</h2>
+<span class="px-2.5 py-0.5 bg-amber-500/10 text-amber-500 text-xs font-bold rounded uppercase border border-amber-500/20">Partial</span>
+</div>
+<p class="text-slate-400 text-lg">Acme Corp</p>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<button class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-all">
+<span class="material-symbols-outlined text-lg">send</span>
+                            Send Invoice
+                        </button>
+<button class="bg-surface hover:bg-surface/80 border border-border-ledger px-5 py-2.5 rounded-lg font-bold text-sm transition-all">
+                            Record Payment
+                        </button>
+<div class="h-8 w-px bg-border-ledger mx-2 hidden sm:block"></div>
+<button class="p-2.5 bg-surface border border-border-ledger rounded-lg hover:bg-slate-800 transition-colors" title="Download PDF">
+<span class="material-symbols-outlined">download</span>
+</button>
+<button class="p-2.5 bg-surface border border-border-ledger rounded-lg hover:bg-slate-800 transition-colors" title="Duplicate">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+<button class="p-2.5 bg-surface border border-border-ledger rounded-lg hover:text-red-400 transition-colors" title="Void">
+<span class="material-symbols-outlined">block</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Summary Metrics Strip -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div class="bg-card border border-border-ledger rounded-xl p-5">
+<p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Total Amount</p>
+<p class="text-2xl font-bold tabular-nums">$4,800.00</p>
+</div>
+<div class="bg-card border border-border-ledger rounded-xl p-5">
+<p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Amount Paid</p>
+<p class="text-2xl font-bold tabular-nums text-emerald-500">$3,600.00</p>
+</div>
+<div class="bg-card border border-border-ledger rounded-xl p-5">
+<p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Amount Due</p>
+<p class="text-2xl font-bold tabular-nums text-amber-500">$1,200.00</p>
+</div>
+<div class="bg-card border border-border-ledger rounded-xl p-5">
+<p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Issue Date</p>
+<p class="text-2xl font-bold tabular-nums">Oct 15, 2023</p>
+</div>
+</div>
+<!-- Main Content: 12-column Grid Split View -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Left: Digital Invoice Document -->
+<div class="col-span-12 lg:col-span-8">
+<div class="bg-paper-tint text-paper-ink rounded-xl shadow-2xl overflow-hidden min-h-[900px]">
+<!-- Invoice Header -->
+<div class="p-12">
+<div class="flex justify-between items-start mb-16">
+<div>
+<div class="h-10 w-32 bg-paper-ink flex items-center justify-center text-paper-tint font-bold text-lg mb-4 rounded">GRAPHITE</div>
+<p class="text-sm font-bold uppercase tracking-widest text-slate-500">Invoice From</p>
+<p class="font-bold">Graphite SaaS Solutions</p>
+<p class="text-sm opacity-70 leading-relaxed">123 Innovation Way<br/>San Francisco, CA 94103<br/>United States</p>
+</div>
+<div class="text-right">
+<h3 class="text-4xl font-bold mb-2">INVOICE</h3>
+<p class="font-bold">#INV-2023-001</p>
+<div class="mt-8 space-y-1">
+<p class="text-sm font-bold uppercase tracking-widest text-slate-500">Bill To</p>
+<p class="font-bold text-lg">Acme Corp</p>
+<p class="text-sm opacity-70 leading-relaxed">888 Enterprise Drive<br/>Austin, TX 78701<br/>United States</p>
+</div>
+</div>
+</div>
+<!-- Line Item Table -->
+<div class="mb-12">
+<table class="w-full">
+<thead>
+<tr class="border-b border-paper-ink/10 text-left text-sm font-bold uppercase tracking-widest text-slate-500">
+<th class="py-4">Service Description</th>
+<th class="py-4 text-center">Qty</th>
+<th class="py-4 text-right">Rate</th>
+<th class="py-4 text-right">Amount</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-paper-ink/5">
+<tr>
+<td class="py-6">
+<p class="font-bold">Enterprise Plan - Annual Subscription</p>
+<p class="text-sm opacity-60">Full suite access for 25 users</p>
+</td>
+<td class="py-6 text-center tabular-nums">1</td>
+<td class="py-6 text-right tabular-nums">$4,000.00</td>
+<td class="py-6 text-right font-bold tabular-nums">$4,000.00</td>
+</tr>
+<tr>
+<td class="py-6">
+<p class="font-bold">Premium Support &amp; Setup</p>
+<p class="text-sm opacity-60">Priority onboarding and dedicated manager</p>
+</td>
+<td class="py-6 text-center tabular-nums">1</td>
+<td class="py-6 text-right tabular-nums">$800.00</td>
+<td class="py-6 text-right font-bold tabular-nums">$800.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Totals Stack -->
+<div class="flex justify-end">
+<div class="w-full max-w-xs space-y-3">
+<div class="flex justify-between">
+<span class="text-slate-500 font-medium">Subtotal</span>
+<span class="font-bold tabular-nums">$4,800.00</span>
+</div>
+<div class="flex justify-between">
+<span class="text-slate-500 font-medium">Tax (0%)</span>
+<span class="font-bold tabular-nums">$0.00</span>
+</div>
+<div class="border-t border-paper-ink pt-3 flex justify-between">
+<span class="text-lg font-bold">Total</span>
+<span class="text-lg font-bold tabular-nums">$4,800.00</span>
+</div>
+<div class="flex justify-between py-2 px-3 bg-paper-ink/5 rounded">
+<span class="text-slate-500 font-medium">Amount Paid</span>
+<span class="font-bold text-emerald-700 tabular-nums">-$3,600.00</span>
+</div>
+<div class="flex justify-between py-3 border-t-2 border-double border-paper-ink">
+<span class="text-lg font-bold">Amount Due</span>
+<span class="text-xl font-bold tabular-nums">$1,200.00</span>
+</div>
+</div>
+</div>
+<!-- Footer Note -->
+<div class="mt-24 pt-8 border-t border-paper-ink/10">
+<p class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Notes</p>
+<p class="text-sm opacity-70">Payment terms: Net 30. Thank you for choosing Graphite. We look forward to continuing our partnership.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Sidebar Content -->
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<!-- Payment History -->
+<div class="bg-card border border-border-ledger rounded-xl p-6">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">history</span>
+                                Payment History
+                            </h3>
+<button class="text-xs font-bold text-primary uppercase tracking-wider">View All</button>
+</div>
+<div class="space-y-6 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border-ledger">
+<div class="relative pl-8">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-sm">$1,800.00 via Stripe</p>
+<p class="text-xs text-slate-500">Oct 25, 2023 • Reference #STR-9021</p>
+</div>
+</div>
+<div class="relative pl-8">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-sm">$1,800.00 via Wire Transfer</p>
+<p class="text-xs text-slate-500">Oct 20, 2023 • Reference #WIR-1044</p>
+</div>
+</div>
+<div class="relative pl-8">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+</div>
+<div class="flex flex-col">
+<p class="font-bold text-sm opacity-50">Invoice Created</p>
+<p class="text-xs text-slate-500">Oct 15, 2023 • By System</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Client Snapshot -->
+<div class="bg-card border border-border-ledger rounded-xl overflow-hidden">
+<div class="p-6 border-b border-border-ledger bg-surface/50">
+<h3 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">contact_page</span>
+                                Client Snapshot
+                            </h3>
+</div>
+<div class="p-6">
+<div class="flex items-center gap-4 mb-6">
+<div class="w-12 h-12 rounded-lg bg-slate-800 border border-border-ledger flex items-center justify-center font-bold text-lg">AC</div>
+<div>
+<p class="font-bold">Acme Corp</p>
+<p class="text-xs text-slate-500">Enterprise Partner</p>
+</div>
+</div>
+<div class="space-y-4 mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-500 text-lg">mail</span>
+<span class="text-sm">billing@acme.com</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-500 text-lg">phone</span>
+<span class="text-sm">+1 (555) 902-8800</span>
+</div>
+</div>
+<div class="p-4 bg-surface rounded-lg border border-border-ledger">
+<p class="text-xs text-slate-500 font-medium uppercase mb-1">Current Account Balance</p>
+<p class="text-xl font-bold tabular-nums text-primary">$1,200.00</p>
+</div>
+</div>
+<div class="px-6 py-4 bg-surface/30 border-t border-border-ledger">
+<button class="w-full text-sm font-bold text-primary text-center hover:underline">View Client Profile</button>
+</div>
+</div>
+<!-- Additional Actions -->
+<div class="grid grid-cols-2 gap-4">
+<button class="flex flex-col items-center justify-center p-4 bg-card border border-border-ledger rounded-xl hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-400 mb-2">mail</span>
+<span class="text-xs font-bold uppercase">Reminder</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 bg-card border border-border-ledger rounded-xl hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-400 mb-2">edit</span>
+<span class="text-xs font-bold uppercase">Edit INV</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

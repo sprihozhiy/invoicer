@@ -1,0 +1,48 @@
+{
+  "name": "projects/13522279910898874620",
+  "projectId": "13522279910898874620",
+  "title": "invoicer-task-invoicer-redesign-exec-v8",
+  "visibility": "PRIVATE",
+  "createTime": "2026-03-19T01:45:25.818308Z",
+  "updateTime": "2026-03-19T01:45:25.818308Z",
+  "projectType": "PROJECT_DESIGN",
+  "origin": "STITCH",
+  "designTheme": {},
+  "metadata": {
+    "userRole": "OWNER"
+  },
+  "screens": {
+    "landing-prototype": {
+      "id": "e45c3d736bc74b0892f163c0c329cc0a",
+      "sourceScreen": "projects/13522279910898874620/screens/e45c3d736bc74b0892f163c0c329cc0a",
+      "x": 0,
+      "y": 0,
+      "width": 2560,
+      "height": 8896
+    },
+    "dashboard-prototype": {
+      "id": "d92d13a967fd4c4b94a5f85f776e8a6b",
+      "sourceScreen": "projects/13522279910898874620/screens/d92d13a967fd4c4b94a5f85f776e8a6b",
+      "x": 0,
+      "y": 0,
+      "width": 2560,
+      "height": 2048
+    },
+    "invoice-builder-prototype": {
+      "id": "85a73b6aec024c20a60b738d2b940585",
+      "sourceScreen": "projects/13522279910898874620/screens/85a73b6aec024c20a60b738d2b940585",
+      "x": 0,
+      "y": 0,
+      "width": 2560,
+      "height": 2048
+    },
+    "invoice-detail-prototype": {
+      "id": "bbbe162d106145809f86f78314946c0b",
+      "sourceScreen": "projects/13522279910898874620/screens/bbbe162d106145809f86f78314946c0b",
+      "x": 0,
+      "y": 0,
+      "width": 2560,
+      "height": 2980
+    }
+  }
+}

@@ -48,30 +48,6 @@
         }
         .tabular { font-variant-numeric: tabular-nums; }
     </style>
-
-<style>
-/* Responsive Breakpoints & Focus States injected by build step */
-*:focus-visible { outline: 2px solid #178dee !important; outline-offset: 2px !important; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-
-/* Mobile adjustments */
-@media (max-width: 767px) {
-    body { font-size: 14px; }
-    .grid { display: flex !important; flex-direction: column !important; }
-    .flex-row { flex-direction: column !important; }
-    .w-64, .w-60 { width: 100% !important; position: static !important; }
-    button, a { min-height: 44px; }
-    /* Hide specific desktop elements */
-    .hidden.md\\:flex { display: none !important; }
-}
-
-/* Tablet adjustments */
-@media (min-width: 768px) and (max-width: 1279px) {
-    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-    .w-64, .w-60 { width: 200px !important; }
-}
-</style>
-
 </head>
 <body class="bg-background-dark text-ice font-display selection:bg-primary/30">
 <!-- Sticky Nav -->
